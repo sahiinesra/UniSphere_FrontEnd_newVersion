@@ -22,16 +22,18 @@ export default function Layout() {
           title: 'AI',
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-        }}
-      />
+      
       <Tabs.Screen
         name="notification"
         options={{
           title: 'Alerts',
+        }}
+      />
+
+<Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
         }}
       />
     </Tabs>
