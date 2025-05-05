@@ -151,37 +151,29 @@ export default function Index() {
             <NeoButton 
               title="Past Exams" 
               onPress={() => {
-                // @ts-ignore - Bypass TypeScript error for navigation
-                router.push({
-                  pathname: "/home/pastexams"
-                });
+                // Standard push navigation
+                router.push("/home/pastexams");
               }} 
             />
             <NeoButton 
               title="Class Notes" 
               onPress={() => {
-                // @ts-ignore - Bypass TypeScript error for navigation
-                router.push({
-                  pathname: "/home/classnotes"
-                });
+                // Standard push navigation
+                router.push("/home/classnotes");
               }} 
             />
             <NeoButton 
               title="Campus Map" 
               onPress={() => {
-                // @ts-ignore - Bypass TypeScript error for navigation
-                router.push({
-                  pathname: "/home/campusmap"
-                });
+                // Standard push navigation
+                router.push("/home/campusmap");
               }} 
             />
             <NeoButton 
               title="Communities" 
               onPress={() => {
-                // @ts-ignore - Bypass TypeScript error for navigation
-                router.push({
-                  pathname: "/home/communities"
-                });
+                // Standard push navigation
+                router.push("/home/communities");
               }} 
             />
           </View>

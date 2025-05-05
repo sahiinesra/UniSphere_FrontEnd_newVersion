@@ -26,12 +26,20 @@ export default function HomeLayout() {
           headerBackVisible: false,
           headerLeft: () => (
             <TouchableOpacity 
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => {
+                // Simple navigation back to home without animation specification
+                // This will use the system default of right to left for back navigation
+                router.back();
+              }}
               style={{ marginLeft: 10 }}
             >
               <Ionicons name="arrow-back" size={24} color="#000000" />
             </TouchableOpacity>
           ),
+          // This controls how screens are presented in the stack
+          presentation: 'card',
+          // Animation for this whole group - ensures proper back animation
+          animationTypeForReplace: 'pop',
         }}
       />
       
