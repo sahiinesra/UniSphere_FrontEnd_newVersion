@@ -11,8 +11,6 @@ export default function Communities() {
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
-          <Text style={styles.title}>Communities</Text>
-          
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Academic Clubs</Text>
             <Text style={styles.sectionContent}>

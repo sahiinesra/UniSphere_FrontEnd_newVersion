@@ -11,8 +11,6 @@ export default function CampusMap() {
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
-          <Text style={styles.title}>Campus Map</Text>
-          
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Main Campus</Text>
             <Text style={styles.sectionContent}>

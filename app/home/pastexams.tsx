@@ -11,8 +11,6 @@ export default function PastExams() {
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
-          <Text style={styles.title}>Past Exams</Text>
-          
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Fall 2023</Text>
             <Text style={styles.sectionContent}>

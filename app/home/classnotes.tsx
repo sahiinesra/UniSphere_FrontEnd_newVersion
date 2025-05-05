@@ -11,8 +11,6 @@ export default function ClassNotes() {
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
-          <Text style={styles.title}>Class Notes</Text>
-          
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Computer Science</Text>
             <Text style={styles.sectionContent}>
