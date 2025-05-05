@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    KeyboardAvoidingView,
     ListRenderItem,
+    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -35,6 +37,16 @@ const Assistant = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (chatMessages.length > 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 200);
+    }
+  }, [chatMessages]);
 
   // Send message to AI assistant
   const sendMessage = (): void => {
@@ -99,15 +111,16 @@ const Assistant = () => {
         }
       }} />
       
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <View style={styles.chatContainer}>
           <FlatList
+            ref={flatListRef}
             data={chatMessages}
             renderItem={renderChatMessage}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.chatList}
             showsVerticalScrollIndicator={false}
-            inverted={false}
+            ListHeaderComponent={<View style={styles.listHeader} />}
           />
           
           {isTyping && (
@@ -120,28 +133,36 @@ const Assistant = () => {
               </View>
             </View>
           )}
-          
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask your AI assistant..."
-              value={messageInput}
-              onChangeText={setMessageInput}
-              multiline
-            />
-            <TouchableOpacity 
-              style={styles.sendButton}
-              onPress={sendMessage}
-              disabled={messageInput.trim() === ''}
-            >
-              <Ionicons 
-                name="send" 
-                size={24} 
-                color={messageInput.trim() === '' ? '#CCCCCC' : '#2196F3'} 
-              />
-            </TouchableOpacity>
-          </View>
         </View>
+        
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+          style={styles.keyboardAvoid}
+        >
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ask your AI assistant..."
+                value={messageInput}
+                onChangeText={setMessageInput}
+                multiline
+              />
+              <TouchableOpacity 
+                style={styles.sendButton}
+                onPress={sendMessage}
+                disabled={messageInput.trim() === ''}
+              >
+                <Ionicons 
+                  name="send" 
+                  size={24} 
+                  color={messageInput.trim() === '' ? '#CCCCCC' : '#2196F3'} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </>
   );
@@ -150,15 +171,18 @@ const Assistant = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFD700',
   },
   chatContainer: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFD700',
   },
   chatList: {
     padding: 15,
-    paddingBottom: 80,
+    paddingBottom: 15,
+  },
+  listHeader: {
+    height: 60,
   },
   chatBubbleContainer: {
     flexDirection: 'row',
@@ -189,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   userBubble: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#2196F3',
     borderColor: '#000000',
     borderTopRightRadius: 5,
   },
@@ -200,6 +224,7 @@ const styles = StyleSheet.create({
   },
   chatText: {
     fontSize: 16,
+    color: '#000000',
   },
   typingIndicator: {
     flexDirection: 'row',
@@ -226,16 +251,18 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
     borderTopLeftRadius: 5,
   },
+  keyboardAvoid: {
+    width: '100%',
+  },
+  inputWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 2,
+    borderTopColor: '#000000',
+  },
   inputContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     padding: 10,
-    borderTopWidth: 2,
-    borderTopColor: '#000000',
     alignItems: 'center',
   },
   input: {
