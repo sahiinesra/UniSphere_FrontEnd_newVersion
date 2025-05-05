@@ -30,7 +30,7 @@ export default function Layout() {
         }}
       />
 
-<Tabs.Screen
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

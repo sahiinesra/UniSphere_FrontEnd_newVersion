@@ -1,13 +1,14 @@
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Updated for Yellow Background & Blue Buttons)
@@ -47,6 +48,8 @@ const NeoButton: React.FC<NeoButtonProps> = ({ title, onPress }) => {
 };
 
 export default function Index() {
+  const router = useRouter();
+  
   // State for holding profile data
   const [profile, setProfile] = useState<UserProfile>({
     // Initial placeholder data - will be replaced by backend data
@@ -145,10 +148,42 @@ export default function Index() {
           {/* Buttons Section - Now Blue */}
           <View style={styles.buttonContainer}>
             {/* Each button is pressable due to TouchableOpacity */}
-            <NeoButton title="Past Exams" onPress={() => { alert('Past Exams Pressed!'); }} />
-            <NeoButton title="Class Notes" onPress={() => { alert('Class Notes Pressed!'); }} />
-            <NeoButton title="Campus Map" onPress={() => { alert('Campus Map Pressed!'); }} />
-            <NeoButton title="Communities" onPress={() => { alert('Communities Pressed!'); }} />
+            <NeoButton 
+              title="Past Exams" 
+              onPress={() => {
+                // @ts-ignore - Bypass TypeScript error for navigation
+                router.push({
+                  pathname: "/home/pastexams"
+                });
+              }} 
+            />
+            <NeoButton 
+              title="Class Notes" 
+              onPress={() => {
+                // @ts-ignore - Bypass TypeScript error for navigation
+                router.push({
+                  pathname: "/home/classnotes"
+                });
+              }} 
+            />
+            <NeoButton 
+              title="Campus Map" 
+              onPress={() => {
+                // @ts-ignore - Bypass TypeScript error for navigation
+                router.push({
+                  pathname: "/home/campusmap"
+                });
+              }} 
+            />
+            <NeoButton 
+              title="Communities" 
+              onPress={() => {
+                // @ts-ignore - Bypass TypeScript error for navigation
+                router.push({
+                  pathname: "/home/communities"
+                });
+              }} 
+            />
           </View>
         </View>
       </ScrollView>
@@ -248,23 +283,23 @@ const styles = StyleSheet.create({
   },
   // Custom Button Styles - Blue Background, White Text
   buttonBase: {
+    backgroundColor: colors.primaryButtonBackground,
+    paddingVertical: 15,
+    borderRadius: 0,
     borderWidth: 3,
-    borderColor: colors.border, // Black border
-    backgroundColor: colors.primaryButtonBackground, // Blue background
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderColor: colors.border,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.border, // Black shadow
-    shadowOffset: { width: 3, height: 3 },
+    shadowColor: colors.border,
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 0,
+    elevation: 4,
   },
   buttonText: {
+    color: colors.primaryButtonText,
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primaryButtonText, // White text
-    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });
