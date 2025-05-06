@@ -13,7 +13,7 @@ import {
 
 // Neo-Brutalism Color Palette (Updated for Yellow Background & Blue Buttons)
 const colors = {
-  background: '#FFFF00', // Primary background is Yellow
+  background: '#FFD700', // Gold yellow (matching AI page)
   text: '#000000',      // Text is Black for contrast
   border: '#000000',      // Borders are Black
   cardBackground: '#FFFFFF', // Card interiors are White

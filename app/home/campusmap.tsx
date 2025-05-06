@@ -3,6 +3,14 @@ import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+// Define colors to match the application theme
+const colors = {
+  background: '#FFD700', // Gold yellow (matching AI page)
+  text: '#000000',       // Text is Black for contrast
+  border: '#000000',     // Borders are Black
+  accent: '#2196F3',     // Blue accent
+};
+
 export default function CampusMap() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -15,7 +23,7 @@ export default function CampusMap() {
       <View style={styles.container}>
         {isLoading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2196F3" />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Loading Map...</Text>
           </View>
         )}
@@ -34,10 +42,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
+    backgroundColor: colors.background,
   },
   webview: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
   },
   loadingContainer: {
     position: 'absolute',
@@ -47,12 +55,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     zIndex: 1,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     fontWeight: 'bold',
+    color: colors.text,
   },
 }); 

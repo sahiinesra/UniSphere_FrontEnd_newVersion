@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // Define types for our data

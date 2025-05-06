@@ -2,6 +2,14 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+// Define colors to match the application theme
+const colors = {
+  background: '#FFD700', // Gold yellow (matching AI page)
+  text: '#000000',       // Text is Black for contrast
+  border: '#000000',     // Borders are Black
+  cardBackground: '#FFFFFF', // Card interiors are White
+};
+
 export default function Communities() {
   return (
     <>
@@ -59,26 +67,28 @@ export default function Communities() {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
     padding: 20,
     paddingBottom: 100, // Add extra padding for bottom tabs
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 3,
-    borderColor: '#000000',
+    borderColor: colors.border,
     padding: 15,
     marginBottom: 25,
-    shadowColor: '#000000',
+    shadowColor: colors.border,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -87,15 +97,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 10,
     borderBottomWidth: 3,
-    borderBottomColor: '#000000',
+    borderBottomColor: colors.border,
     paddingBottom: 5,
   },
   sectionContent: {
     fontSize: 16,
-    color: '#000000',
+    color: colors.text,
     lineHeight: 24,
   },
 }); 

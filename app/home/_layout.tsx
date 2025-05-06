@@ -12,14 +12,14 @@ export default function HomeLayout() {
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#FFFF00',
+            backgroundColor: '#FFD700',
           },
           headerTintColor: '#000000',
           headerTitleStyle: {
             fontWeight: 'bold',
           },
           contentStyle: {
-            backgroundColor: '#FFFF00',
+            backgroundColor: '#FFD700',
             paddingBottom: 75, // Space for tab bar
           },
           // Custom back button that always goes to home tab

@@ -11,6 +11,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// Define colors to match the application theme
+const colors = {
+  background: '#FFD700', // Gold yellow (matching AI page)
+  text: '#000000',       // Text is Black for contrast
+  border: '#000000',     // Borders are Black
+  cardBackground: '#FFFFFF', // Card interiors are White
+};
+
 // Define types for our data
 interface Alert {
   id: string;
@@ -186,7 +194,7 @@ const Notifications = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.background,
   },
   contentContainer: {
     flex: 1,
@@ -219,7 +227,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFD700',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
@@ -273,3 +281,4 @@ const styles = StyleSheet.create({
 });
 
 export default Notifications;
+
