@@ -11,7 +11,9 @@ export default function RootLayout() {
         // Presentation mode for card-style animations
         presentation: 'card',
       }}
+      initialRouteName="login"
     >
+      <Stack.Screen name="login" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="home" />
     </Stack>
