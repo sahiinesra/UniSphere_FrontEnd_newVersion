@@ -26,9 +26,8 @@ const colors = {
   inputBackground: '#FFFFFF', // Input background is White
 };
 
-const Login = () => {
+const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
 
   const validateEmail = (email: string) => {
@@ -36,9 +35,15 @@ const Login = () => {
     return emailRegex.test(email);
   };
 
-  const handleLogin = () => {
+  const handleResetPassword = () => {
     // Reset error
     setEmailError('');
+
+    // Basic validation
+    if (!email) {
+      setEmailError('Email is required');
+      return;
+    }
 
     // Check if email is valid
     if (!validateEmail(email)) {
@@ -47,19 +52,19 @@ const Login = () => {
       return;
     }
 
-    // Implement actual login logic here
-    // For now, we'll just navigate to the home page
-    router.replace('/(tabs)');
+    // Display success message
+    Alert.alert(
+      "Password Reset",
+      "The password reset link has been sent to your email. Please check.",
+      [
+        { text: "OK", onPress: () => router.replace('/login') }
+      ]
+    );
   };
 
-  const handleForgotPassword = () => {
-    // Navigate to forgot password page
-    router.push('/forgotPassword');
-  };
-
-  const handleSignUp = () => {
-    // Navigate to registration page
-    router.push('/register');
+  const handleBack = () => {
+    // Navigate back to login page
+    router.back();
   };
 
   return (
@@ -81,9 +86,12 @@ const Login = () => {
             </View>
           </View>
 
-          {/* Login Form */}
+          {/* Forgot Password Form */}
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Login</Text>
+            <Text style={styles.formTitle}>Forgot Password</Text>
+            <Text style={styles.formSubtitle}>
+              Enter your email address and we'll send you a link to reset your password.
+            </Text>
             
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
@@ -99,41 +107,23 @@ const Login = () => {
               {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
             </View>
             
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                placeholderTextColor="#999"
-                secureTextEntry
-              />
-            </View>
-            
             <TouchableOpacity 
-              onPress={handleForgotPassword}
-              style={styles.forgotPasswordButton}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={handleLogin}
-              style={styles.loginButton}
+              onPress={handleResetPassword}
+              style={styles.resetButton}
               activeOpacity={0.7}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.resetButtonText}>Send Reset Link</Text>
             </TouchableOpacity>
           </View>
           
-          {/* Sign Up Section */}
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={handleSignUp}>
-              <Text style={styles.signUpLink}>Sign up</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Back Button */}
+          <TouchableOpacity 
+            onPress={handleBack}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backButtonText}>← Back to Login</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -154,7 +144,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 30,
   },
   logoBorder: {
     flexDirection: 'row',
@@ -191,15 +181,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 10,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   formTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: 'center',
     textTransform: 'uppercase',
+  },
+  formSubtitle: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: 20,
@@ -219,15 +215,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
   },
-  forgotPasswordText: {
-    color: colors.primaryButtonBackground,
-    fontWeight: 'bold',
-  },
-  loginButton: {
+  resetButton: {
     backgroundColor: colors.primaryButtonBackground,
     paddingVertical: 15,
     borderRadius: 0,
@@ -240,33 +233,22 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 4,
   },
-  loginButtonText: {
+  resetButtonText: {
     color: colors.primaryButtonText,
     fontSize: 18,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  backButton: {
+    marginTop: 10,
+    marginBottom: 20,
   },
-  signUpText: {
+  backButtonText: {
     color: colors.text,
-    fontSize: 16,
-    marginRight: 5,
-  },
-  signUpLink: {
-    color: colors.primaryButtonBackground,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 5,
-  },
 });
 
-export default Login; 
+export default ForgotPassword; 
