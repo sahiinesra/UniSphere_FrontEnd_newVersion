@@ -26,40 +26,50 @@ const colors = {
   inputBackground: '#FFFFFF', // Input background is White
 };
 
-const Login = () => {
+const Register = () => {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleLogin = () => {
-    // Reset error
-    setEmailError('');
+  const handleRegister = () => {
+    // Reset any previous errors
+    setError('');
 
-    // Check if email is valid
+    // Basic validation
+    if (!email || !firstName || !lastName || !password || !confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+
+    // Validate email format
     if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setError('Please enter a valid email address');
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
-    // Implement actual login logic here
-    // For now, we'll just navigate to the home page
-    router.replace('/(tabs)');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    // Here you would implement the actual registration logic
+    // For now, just navigate back to login page with a success message
+    alert('Registration successful! Please login with your credentials.');
+    router.replace('/login');
   };
 
-  const handleForgotPassword = () => {
-    // Implementation for forgot password
-    alert('Forgot password functionality will be implemented');
-  };
-
-  const handleSignUp = () => {
-    // Navigate to registration page
-    router.push('/register');
+  const handleBack = () => {
+    // Navigate back to login page
+    router.back();
   };
 
   return (
@@ -81,9 +91,11 @@ const Login = () => {
             </View>
           </View>
 
-          {/* Login Form */}
+          {/* Registration Form */}
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Login</Text>
+            <Text style={styles.formTitle}>Register</Text>
+            
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
@@ -96,7 +108,28 @@ const Login = () => {
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>First Name</Text>
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter your first name"
+                placeholderTextColor="#999"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Last Name</Text>
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Enter your last name"
+                placeholderTextColor="#999"
+              />
             </View>
             
             <View style={styles.inputGroup}>
@@ -111,29 +144,35 @@ const Login = () => {
               />
             </View>
             
-            <TouchableOpacity 
-              onPress={handleForgotPassword}
-              style={styles.forgotPasswordButton}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm your password"
+                placeholderTextColor="#999"
+                secureTextEntry
+              />
+            </View>
             
             <TouchableOpacity 
-              onPress={handleLogin}
-              style={styles.loginButton}
+              onPress={handleRegister}
+              style={styles.registerButton}
               activeOpacity={0.7}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.registerButtonText}>Register</Text>
             </TouchableOpacity>
           </View>
           
-          {/* Sign Up Section */}
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={handleSignUp}>
-              <Text style={styles.signUpLink}>Sign up</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Back Button */}
+          <TouchableOpacity 
+            onPress={handleBack}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backButtonText}>← Back to Login</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -154,7 +193,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 30,
   },
   logoBorder: {
     flexDirection: 'row',
@@ -191,7 +230,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 10,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   formTitle: {
     fontSize: 24,
@@ -201,8 +240,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 15,
+    fontWeight: 'bold',
+  },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   inputLabel: {
     color: colors.text,
@@ -219,15 +264,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: colors.primaryButtonBackground,
-    fontWeight: 'bold',
-  },
-  loginButton: {
+  registerButton: {
     backgroundColor: colors.primaryButtonBackground,
     paddingVertical: 15,
     borderRadius: 0,
@@ -239,34 +276,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
+    marginTop: 10,
   },
-  loginButtonText: {
+  registerButtonText: {
     color: colors.primaryButtonText,
     fontSize: 18,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  backButton: {
+    marginTop: 10,
+    marginBottom: 20,
   },
-  signUpText: {
+  backButtonText: {
     color: colors.text,
-    fontSize: 16,
-    marginRight: 5,
-  },
-  signUpLink: {
-    color: colors.primaryButtonBackground,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 5,
-  },
 });
 
-export default Login; 
+export default Register; 
