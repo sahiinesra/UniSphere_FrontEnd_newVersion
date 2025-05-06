@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
+    Image,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -55,6 +56,10 @@ const Login = () => {
           {/* Logo and App Name */}
           <View style={styles.logoContainer}>
             <View style={styles.logoBorder}>
+              <Image 
+                source={require('../assets/images/image.png')}
+                style={styles.logo}
+              />
               <Text style={styles.logoText}>UniSphere</Text>
             </View>
           </View>
@@ -134,6 +139,8 @@ const styles = StyleSheet.create({
     marginBottom: 50,
   },
   logoBorder: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 3,
     borderColor: colors.border,
     padding: 15,
@@ -143,6 +150,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 8,
+  },
+  logo: {
+    width: 60,
+    height: 60,
+    marginRight: 10,
   },
   logoText: {
     fontSize: 36,
