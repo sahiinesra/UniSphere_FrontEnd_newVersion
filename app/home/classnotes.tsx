@@ -466,6 +466,16 @@ export default function ClassNotes() {
                     onChangeText={(text) => setFormData({...formData, departmentId: text})}
                   />
                   
+                  <TouchableOpacity 
+                    style={styles.uploadFileButton}
+                    onPress={() => {
+                      Alert.alert('Upload', 'File upload will be implemented');
+                    }}
+                  >
+                    <Ionicons name="document-attach" size={20} color="#fff" />
+                    <Text style={styles.uploadFileButtonText}>Add File</Text>
+                  </TouchableOpacity>
+                  
                   <View style={styles.modalButtons}>
                     <TouchableOpacity 
                       style={[styles.modalButton, styles.cancelButton]}
@@ -938,5 +948,22 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#FF3B30',
+  },
+  uploadFileButton: {
+    backgroundColor: '#2196F3',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 5,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  uploadFileButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginLeft: 5,
+    fontSize: 14,
   },
 }); 
