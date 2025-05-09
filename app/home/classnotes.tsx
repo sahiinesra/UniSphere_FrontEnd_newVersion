@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -414,67 +416,79 @@ export default function ClassNotes() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create New Class Note</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Course Code"
-              value={formData.courseCode}
-              onChangeText={(text) => setFormData({...formData, courseCode: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Title"
-              value={formData.title}
-              onChangeText={(text) => setFormData({...formData, title: text})}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description"
-              multiline
-              value={formData.description}
-              onChangeText={(text) => setFormData({...formData, description: text})}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Content"
-              multiline
-              value={formData.content}
-              onChangeText={(text) => setFormData({...formData, content: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Department ID"
-              value={formData.departmentId}
-              onChangeText={(text) => setFormData({...formData, departmentId: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setCreateModalVisible(false);
-                  resetForm();
-                }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.submitButton]}
-                onPress={handleCreateNote}
-              >
-                <Text style={styles.modalButtonText}>Create</Text>
-              </TouchableOpacity>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Create New Class Note</Text>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Course Code"
+                    value={formData.courseCode}
+                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Title"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData({...formData, title: text})}
+                  />
+                  
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Description"
+                    multiline
+                    value={formData.description}
+                    onChangeText={(text) => setFormData({...formData, description: text})}
+                  />
+                  
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Content"
+                    multiline
+                    value={formData.content}
+                    onChangeText={(text) => setFormData({...formData, content: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Department ID"
+                    value={formData.departmentId}
+                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
+                  />
+                  
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setCreateModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleCreateNote}
+                    >
+                      <Text style={styles.modalButtonText}>Create</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Update Note Modal */}
@@ -483,59 +497,71 @@ export default function ClassNotes() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Update Class Note</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Course Code"
-              value={formData.courseCode}
-              onChangeText={(text) => setFormData({...formData, courseCode: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Title"
-              value={formData.title}
-              onChangeText={(text) => setFormData({...formData, title: text})}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description"
-              multiline
-              value={formData.description}
-              onChangeText={(text) => setFormData({...formData, description: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Department ID"
-              value={formData.departmentId}
-              onChangeText={(text) => setFormData({...formData, departmentId: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setUpdateModalVisible(false);
-                  resetForm();
-                }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.submitButton]}
-                onPress={handleUpdateNote}
-              >
-                <Text style={styles.modalButtonText}>Update</Text>
-              </TouchableOpacity>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Update Class Note</Text>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Course Code"
+                    value={formData.courseCode}
+                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Title"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData({...formData, title: text})}
+                  />
+                  
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Description"
+                    multiline
+                    value={formData.description}
+                    onChangeText={(text) => setFormData({...formData, description: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Department ID"
+                    value={formData.departmentId}
+                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
+                  />
+                  
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setUpdateModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleUpdateNote}
+                    >
+                      <Text style={styles.modalButtonText}>Update</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Delete Note Modal */}
@@ -544,37 +570,49 @@ export default function ClassNotes() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Class Note</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Note ID"
-              value={formData.noteId}
-              onChangeText={(text) => setFormData({...formData, noteId: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setDeleteModalVisible(false);
-                  resetForm();
-                }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.deleteButton]}
-                onPress={handleDeleteNote}
-              >
-                <Text style={styles.modalButtonText}>Delete</Text>
-              </TouchableOpacity>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Delete Class Note</Text>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({...formData, noteId: text})}
+                  />
+                  
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setDeleteModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={handleDeleteNote}
+                    >
+                      <Text style={styles.modalButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Add File Modal */}
@@ -583,44 +621,56 @@ export default function ClassNotes() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add File to Note</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Note ID"
-              value={formData.noteId}
-              onChangeText={(text) => setFormData({...formData, noteId: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="File Name (e.g. lecture.pdf)"
-              value={formData.fileName}
-              onChangeText={(text) => setFormData({...formData, fileName: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setAddFileModalVisible(false);
-                  resetForm();
-                }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.submitButton]}
-                onPress={handleAddFile}
-              >
-                <Text style={styles.modalButtonText}>Add File</Text>
-              </TouchableOpacity>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Add File to Note</Text>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({...formData, noteId: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="File Name (e.g. lecture.pdf)"
+                    value={formData.fileName}
+                    onChangeText={(text) => setFormData({...formData, fileName: text})}
+                  />
+                  
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setAddFileModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleAddFile}
+                    >
+                      <Text style={styles.modalButtonText}>Add File</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Delete File Modal */}
@@ -629,44 +679,56 @@ export default function ClassNotes() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete File from Note</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Note ID"
-              value={formData.noteId}
-              onChangeText={(text) => setFormData({...formData, noteId: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="File ID"
-              value={formData.fileId}
-              onChangeText={(text) => setFormData({...formData, fileId: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setDeleteFileModalVisible(false);
-                  resetForm();
-                }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.deleteButton]}
-                onPress={handleDeleteFile}
-              >
-                <Text style={styles.modalButtonText}>Delete File</Text>
-              </TouchableOpacity>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Delete File from Note</Text>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({...formData, noteId: text})}
+                  />
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="File ID"
+                    value={formData.fileId}
+                    onChangeText={(text) => setFormData({...formData, fileId: text})}
+                  />
+                  
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setDeleteFileModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={handleDeleteFile}
+                    >
+                      <Text style={styles.modalButtonText}>Delete File</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
@@ -810,18 +872,28 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxHeight: '90%',
+    backgroundColor: 'transparent',
+  },
+  scrollViewContent: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#000000',
-    borderRadius: 5,
+    borderRadius: 10,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 20,
     width: '100%',
-    maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 24,
