@@ -1,20 +1,21 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { authService } from './services/api';
+import { storageService, USER_TOKEN } from './services/storage';
 
 // Neo-Brutalism Color Palette (Matching app design)
 const colors = {
@@ -33,6 +34,25 @@ const Login = () => {
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if user is already logged in on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      setIsCheckingAuth(true);
+      try {
+        // Don't auto-login - just check if token exists to prepare it for later use
+        const token = await storageService.getAuthToken();
+        console.log('Existing token found:', !!token);
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,7 +77,22 @@ const Login = () => {
 
     try {
       setIsLoading(true);
-      await authService.login(email, password);
+      console.log('Attempting login with:', email);
+      
+      // Try to login with API using provided credentials
+      const loginResult = await authService.login(email, password);
+      console.log('Login successful, token available:', !!loginResult?.token);
+      
+      // If we got here, login was successful
+      if (loginResult?.token) {
+        // Save the real token from login response
+        await storageService.setAuthToken(loginResult.token);
+        console.log('New token saved from login');
+      } else {
+        // If no token in response, use our USER_TOKEN as backup
+        await storageService.setAuthToken(USER_TOKEN);
+        console.log('Using backup USER_TOKEN');
+      }
       
       // Handle successful login
       setIsLoading(false);
@@ -105,6 +140,18 @@ const Login = () => {
     // Navigate to registration page
     router.push('/register');
   };
+
+  // Show loading indicator while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primaryButtonBackground} />
+          <Text style={styles.loadingText}>Checking login status...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -299,6 +346,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
+    marginBottom: 15,
   },
   loginButtonText: {
     color: colors.primaryButtonText,
@@ -321,6 +369,18 @@ const styles = StyleSheet.create({
     color: colors.primaryButtonBackground,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
   },
 });
 

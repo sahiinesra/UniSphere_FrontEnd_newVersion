@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
-import React, { useState } from 'react';
+import { Stack, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
+import { authService } from '../services/api';
+import { storageService } from '../services/storage';
 
 // Define types for our data
 interface ExamFile {
@@ -21,22 +24,24 @@ interface ExamFile {
 }
 
 interface PastExam {
-  id: string;
+  id: number;
   year: string;
   term: string;
-  departmentId: string;
+  departmentId: number;
   courseCode: string;
   title: string;
+  createdAt?: string;  // API might return createdAt
+  updatedAt?: string;  // API might return updatedAt
   files: ExamFile[];
 }
 
 interface FormData {
   year: string;
   term: string;
-  departmentId: string;
+  departmentId: string;  // Keep as string for form input
   courseCode: string;
   title: string;
-  examId: string;
+  examId: string;  // Keep as string for form input
   fileId: string;
   fileName: string;
 }
@@ -44,10 +49,10 @@ interface FormData {
 // Mock data for past exams
 const initialExams: PastExam[] = [
   {
-    id: '1',
+    id: 1,
     year: '2023',
     term: 'Fall',
-    departmentId: 'CS',
+    departmentId: 1,
     courseCode: 'CS101',
     title: 'Introduction to Programming',
     files: [
@@ -56,10 +61,10 @@ const initialExams: PastExam[] = [
     ]
   },
   {
-    id: '2',
+    id: 2,
     year: '2023',
     term: 'Spring',
-    departmentId: 'MATH',
+    departmentId: 2,
     courseCode: 'MATH201',
     title: 'Calculus I',
     files: [
@@ -67,10 +72,10 @@ const initialExams: PastExam[] = [
     ]
   },
   {
-    id: '3',
+    id: 3,
     year: '2022',
     term: 'Fall',
-    departmentId: 'ENG',
+    departmentId: 3,
     courseCode: 'ENG301',
     title: 'Circuit Analysis',
     files: [
@@ -81,6 +86,8 @@ const initialExams: PastExam[] = [
 ];
 
 export default function PastExams() {
+  const router = useRouter();
+  
   // State for exams and UI controls
   const [exams, setExams] = useState<PastExam[]>(initialExams);
   const [filteredExams, setFilteredExams] = useState<PastExam[]>(initialExams);
@@ -106,6 +113,181 @@ export default function PastExams() {
     fileName: ''
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Check login status and load past exams
+  useEffect(() => {
+    // Set initial loading state to true before loading data
+    setIsLoading(true);
+    
+    // Load exams without explicitly checking login since the API interceptor will handle token
+    const fetchData = async () => {
+      try {
+        // Quick check if we have a token
+        const isLoggedIn = await authService.isLoggedIn();
+        console.log('Is user logged in?', isLoggedIn);
+        
+        if (!isLoggedIn) {
+          console.error('User not logged in, redirecting to login page');
+          router.replace('/login');
+          return;
+        }
+        
+        // Load past exams
+        await loadPastExams();
+      } catch (error) {
+        console.error('Error initializing data:', error);
+        setIsLoading(false);
+        Alert.alert('Error', 'Failed to initialize app data. Please try again.');
+      }
+    };
+    
+    fetchData();
+  }, []);
+  
+  // Function to load past exams from the API
+  const loadPastExams = async () => {
+    try {
+      console.log('PastExams: Loading past exams...');
+      
+      // API baseURL - Use IP address instead of localhost for iOS simulator
+      const baseUrl = Platform.OS === 'ios' 
+        ? "http://192.168.0.31:8080/api/v1"     // IP address for iOS
+        : "http://10.0.2.2:8080/api/v1";        // For Android
+        
+      console.log('PastExams: Using API address:', baseUrl);
+      
+      // Get the token - interceptor will use hardcoded token if needed
+      const token = await storageService.getAuthToken();
+      if (!token) {
+        console.error('PastExams: No token available after fallbacks');
+        Alert.alert('Authentication Error', 'Unable to authenticate. Using demo data for now.');
+        setIsLoading(false);
+        // Use initial mock data
+        setExams(initialExams);
+        setFilteredExams(initialExams);
+        return;
+      }
+      
+      // Make API call
+      console.log('PastExams: Making fetch request...');
+      let response;
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          response = await fetch(`${baseUrl}/past-exams?page=1&pageSize=10`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': token
+            }
+          });
+          
+          console.log('PastExams: API response status:', response.status);
+          
+          if (response.ok) {
+            break; // Success, exit the retry loop
+          }
+          
+          // If unauthorized error, try to get a fresh token
+          if (response.status === 401) {
+            console.log(`Retry ${retryCount + 1}/${maxRetries}: Unauthorized error, refreshing token`);
+            
+            // Clear token cache to force refresh
+            await storageService.clearAuthData();
+            
+            // Get fresh token for next attempt
+            const freshToken = await storageService.getAuthToken();
+            if (!freshToken) {
+              throw new Error('Failed to obtain a valid authentication token');
+            }
+            
+            retryCount++;
+            continue;
+          }
+          
+          // For other errors, break and handle below
+          break;
+        } catch (fetchError) {
+          console.error(`PastExams: Fetch error on attempt ${retryCount + 1}:`, fetchError);
+          retryCount++;
+          
+          if (retryCount > maxRetries) {
+            throw fetchError;
+          }
+          
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      if (!response || !response.ok) {
+        const errorText = await response?.text() || 'Unknown error';
+        console.error('PastExams: API error response:', errorText);
+        throw new Error(`Server returned ${response?.status || 'unknown error'}`);
+      }
+      
+      const data = await response.json();
+      console.log('PastExams: API response received, data length:', Array.isArray(data) ? data.length : 'not an array');
+      
+      if (data && Array.isArray(data)) {
+        // Transform API response to PastExam type
+        const transformedExams: PastExam[] = data.map(exam => ({
+          id: exam.id || 0,
+          year: exam.year || '',
+          term: exam.term || '',
+          departmentId: Number(exam.departmentId) || 0,
+          courseCode: exam.courseCode || '',
+          title: exam.title || '',
+          createdAt: exam.createdAt,
+          updatedAt: exam.updatedAt,
+          files: exam.files || []
+        }));
+        
+        console.log(`PastExams: Successfully loaded ${transformedExams.length} exams`);
+        setExams(transformedExams);
+        setFilteredExams(transformedExams);
+      } else {
+        console.warn('PastExams: API response is not an array:', data);
+        
+        // Fallback to mock data if the API returns invalid data
+        console.log('Using mock data as fallback');
+        setExams(initialExams);
+        setFilteredExams(initialExams);
+      }
+    } catch (error: any) {
+      console.error('PastExams: Error loading exams:', error);
+      
+      let errorMessage = 'Failed to load past exams. Please try again later.';
+      
+      if (error.message) {
+        if (error.message.includes('401')) {
+          errorMessage = 'Authentication error. The app will use sample data for now.';
+          
+          // Use mock data in case of authentication error
+          setExams(initialExams);
+          setFilteredExams(initialExams);
+        } else if (error.message.includes('403')) {
+          errorMessage = 'You do not have permission to access past exams.';
+        } else if (error.message.includes('Network') || error.message.includes('connection')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (error.message.includes('expired')) {
+          errorMessage = 'Your session has expired. Using sample data for now.';
+          
+          // Use mock data for token expiration
+          setExams(initialExams);
+          setFilteredExams(initialExams);
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle search
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -124,25 +306,95 @@ export default function PastExams() {
   };
 
   // Handle create exam
-  const handleCreateExam = () => {
-    // In a real app, this would make an API call
-    const newExam: PastExam = {
-      id: Date.now().toString(),
-      year: formData.year,
-      term: formData.term,
-      departmentId: formData.departmentId,
-      courseCode: formData.courseCode,
-      title: formData.title,
-      files: []
-    };
+  const handleCreateExam = async () => {
+    // Basic validation
+    if (!formData.year || !formData.term || !formData.departmentId || !formData.courseCode || !formData.title) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
     
-    const updatedExams = [...exams, newExam];
-    setExams(updatedExams);
-    setFilteredExams(updatedExams);
-    setCreateModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'Exam created successfully!');
+    try {
+      setIsLoading(true);
+      console.log('PastExams: Creating new exam...');
+      
+      // API baseURL - Use IP address instead of localhost for iOS simulator
+      const baseUrl = Platform.OS === 'ios' 
+        ? "http://192.168.0.31:8080/api/v1"     // IP address for iOS
+        : "http://10.0.2.2:8080/api/v1";        // For Android
+        
+      console.log('PastExams: Using API address:', baseUrl);
+      
+      // Get token - will use hardcoded token if needed
+      const token = await storageService.getAuthToken();
+      if (!token) {
+        console.error('PastExams: No token available for creation');
+        Alert.alert('Error', 'Authentication error. Please log in again to continue.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Create form data
+      const formDataToSend = new FormData();
+      formDataToSend.append('year', formData.year);
+      formDataToSend.append('term', formData.term.toLowerCase());
+      formDataToSend.append('departmentId', formData.departmentId);
+      formDataToSend.append('courseCode', formData.courseCode);
+      formDataToSend.append('title', formData.title);
+      
+      console.log('PastExams: Form data:', JSON.stringify({
+        year: formData.year,
+        term: formData.term.toLowerCase(),
+        departmentId: formData.departmentId,
+        courseCode: formData.courseCode,
+        title: formData.title
+      }));
+      
+      // Make API call
+      console.log('PastExams: Making POST request...');
+      const response = await fetch(`${baseUrl}/past-exams`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': token
+        },
+        body: formDataToSend
+      });
+      
+      console.log('PastExams: API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('PastExams: API error response:', errorText);
+        throw new Error(`Server returned ${response.status}`);
+      }
+      
+      // If successful
+      console.log('PastExams: Exam created successfully');
+      
+      // Reload exams
+      await loadPastExams();
+      setCreateModalVisible(false);
+      resetForm();
+      Alert.alert('Success', 'Exam created successfully!');
+    } catch (error: any) {
+      console.error('PastExams: Error creating exam:', error);
+      
+      let errorMessage = 'Failed to create exam. Please try again later.';
+      
+      if (error.message) {
+        if (error.message.includes('401')) {
+          errorMessage = 'Authentication error. Please log in again to continue.';
+        } else if (error.message.includes('403')) {
+          errorMessage = 'You do not have permission to create exams.';
+        } else if (error.message.includes('Network') || error.message.includes('connection')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle update exam
@@ -156,7 +408,7 @@ export default function PastExams() {
             ...exam,
             year: formData.year,
             term: formData.term,
-            departmentId: formData.departmentId,
+            departmentId: Number(formData.departmentId),
             courseCode: formData.courseCode,
             title: formData.title
           }
@@ -179,7 +431,7 @@ export default function PastExams() {
     }
     
     // In a real app, this would make an API call
-    const updatedExams = exams.filter(exam => exam.id !== formData.examId);
+    const updatedExams = exams.filter(exam => exam.id !== Number(formData.examId));
     
     if (updatedExams.length === exams.length) {
       Alert.alert('Error', 'Exam not found with the given ID');
@@ -203,7 +455,7 @@ export default function PastExams() {
     
     // In a real app, this would make an API call
     const updatedExams = exams.map(exam => {
-      if (exam.id === formData.examId) {
+      if (exam.id === Number(formData.examId)) {
         return {
           ...exam,
           files: [
@@ -238,7 +490,7 @@ export default function PastExams() {
     // In a real app, this would make an API call
     let fileFound = false;
     const updatedExams = exams.map(exam => {
-      if (exam.id === formData.examId) {
+      if (exam.id === Number(formData.examId)) {
         const updatedFiles = exam.files.filter(file => {
           if (file.id === formData.fileId) {
             fileFound = true;
@@ -271,10 +523,10 @@ export default function PastExams() {
     setFormData({
       year: exam.year,
       term: exam.term,
-      departmentId: exam.departmentId,
+      departmentId: String(exam.departmentId),
       courseCode: exam.courseCode,
       title: exam.title,
-      examId: exam.id,
+      examId: String(exam.id),
       fileId: '',
       fileName: ''
     });
@@ -323,6 +575,7 @@ export default function PastExams() {
                 resetForm();
                 setCreateModalVisible(true);
               }}
+              disabled={isLoading}
             >
               <Ionicons name="add-circle" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Create Exam</Text>
@@ -362,8 +615,17 @@ export default function PastExams() {
             </TouchableOpacity>
           </View>
           
+          {/* Loading Indicator */}
+          {isLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2196F3" />
+              <Text style={styles.loadingText}>Loading Past Exams...</Text>
+              <Text style={styles.loadingSubText}>Please wait while we retrieve your data.</Text>
+            </View>
+          )}
+          
           {/* Exams List */}
-          {filteredExams.map(exam => (
+          {!isLoading && filteredExams.map(exam => (
             <View key={exam.id} style={styles.card}>
               <View style={styles.examHeader}>
                 <View>
@@ -397,7 +659,7 @@ export default function PastExams() {
             </View>
           ))}
           
-          {filteredExams.length === 0 && (
+          {!isLoading && filteredExams.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="document-text-outline" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>No past exams found</Text>
@@ -485,8 +747,13 @@ export default function PastExams() {
                     <TouchableOpacity 
                       style={[styles.modalButton, styles.submitButton]}
                       onPress={handleCreateExam}
+                      disabled={isLoading}
                     >
-                      <Text style={styles.modalButtonText}>Create</Text>
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.modalButtonText}>Create</Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -957,5 +1224,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 5,
     fontSize: 14,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 18,
+    color: '#2196F3',
+    fontWeight: 'bold',
+  },
+  loadingSubText: {
+    marginTop: 5,
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
   },
 }); 
