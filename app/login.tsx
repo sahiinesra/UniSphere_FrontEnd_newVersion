@@ -2,18 +2,19 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { authService } from './services/api';
 
 // Neo-Brutalism Color Palette (Matching app design)
 const colors = {
@@ -30,26 +31,69 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleLogin = () => {
-    // Reset error
+  const handleLogin = async () => {
+    // Reset errors
     setEmailError('');
+    setError('');
 
     // Check if email is valid
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address');
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
-    // Implement actual login logic here
-    // For now, we'll just navigate to the home page
-    router.replace('/(tabs)');
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await authService.login(email, password);
+      
+      // Handle successful login
+      setIsLoading(false);
+      // Navigate to the main app
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      setIsLoading(false);
+      
+      // Handle API error responses
+      if (error.response) {
+        // The request was made and the server responded with an error status
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        
+        if (error.response.status === 401) {
+          setError('Invalid email or password');
+        } else if (error.response.status === 403) {
+          // 403 Forbidden typically means the account exists but isn't activated
+          // or doesn't have the right permissions
+          if (error.response.data?.error?.message) {
+            setError(error.response.data.error.message);
+          } else {
+            setError('Account not activated or insufficient permissions');
+          }
+        } else {
+          setError('Login failed. Please try again.');
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        setError('No response from server. Check your connection.');
+      } else {
+        // Something happened in setting up the request
+        setError('An error occurred. Please try again.');
+      }
+      console.error('Login error:', error);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -85,6 +129,8 @@ const Login = () => {
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Login</Text>
             
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
               <TextInput
@@ -95,6 +141,7 @@ const Login = () => {
                 placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
               />
               {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
             </View>
@@ -108,12 +155,14 @@ const Login = () => {
                 placeholder="Enter your password"
                 placeholderTextColor="#999"
                 secureTextEntry
+                editable={!isLoading}
               />
             </View>
             
             <TouchableOpacity 
               onPress={handleForgotPassword}
               style={styles.forgotPasswordButton}
+              disabled={isLoading}
             >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -122,15 +171,20 @@ const Login = () => {
               onPress={handleLogin}
               style={styles.loginButton}
               activeOpacity={0.7}
+              disabled={isLoading}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
             </TouchableOpacity>
           </View>
           
           {/* Sign Up Section */}
           <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={handleSignUp}>
+            <Text style={styles.signUpText}>Don&apos;t have an account?</Text>
+            <TouchableOpacity onPress={handleSignUp} disabled={isLoading}>
               <Text style={styles.signUpLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
@@ -201,6 +255,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   inputGroup: {
     marginBottom: 20,
   },
@@ -261,11 +321,6 @@ const styles = StyleSheet.create({
     color: colors.primaryButtonBackground,
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 5,
   },
 });
 

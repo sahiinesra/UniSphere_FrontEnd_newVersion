@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     KeyboardAvoidingView,
@@ -14,6 +15,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { authService } from './services/api';
 
 // Neo-Brutalism Color Palette (Matching app design)
 const colors = {
@@ -32,14 +34,26 @@ const Register = () => {
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [departmentId, setDepartmentId] = useState('1'); // Default to 1
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleRegister = () => {
+  const validatePassword = (password: string) => {
+    // Check for minimum length
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    
+    // Check for uppercase letter
+    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter';
+    
+    return null; // No error
+  };
+
+  const handleRegister = async () => {
     // Reset any previous errors
     setError('');
 
@@ -52,7 +66,6 @@ const Register = () => {
     // Validate email format
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
@@ -61,10 +74,65 @@ const Register = () => {
       return;
     }
 
-    // Here you would implement the actual registration logic
-    // For now, just navigate back to login page with a success message
-    alert('Registration successful! Please login with your credentials.');
-    router.replace('/login');
+    // Validate password strength
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('Sending registration request to:', authService.getApiBaseUrl?.() || 'API URL not available');
+      
+      // Call API to register user
+      await authService.register({
+        departmentId: parseInt(departmentId),
+        email,
+        firstName,
+        lastName,
+        password
+      });
+      
+      setIsLoading(false);
+      
+      // Show success message and navigate to login
+      Alert.alert(
+        'Registration Successful',
+        'Your account has been created. Please login with your credentials.',
+        [{ text: 'OK', onPress: () => router.replace('/login') }]
+      );
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('Registration error:', error);
+      
+      if (error.message) {
+        console.error('Error message:', error.message);
+      }
+      
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+      
+      // Handle API error responses
+      if (error.response) {
+        // The request was made and the server responded with an error status
+        if (error.response.data && error.response.data.message) {
+          setError(error.response.data.message);
+        } else if (error.response.status === 409) {
+          setError('Email is already registered');
+        } else {
+          setError('Registration failed. Please try again.');
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        setError('No response from server. Check your connection and server status.');
+      } else {
+        // Something happened in setting up the request
+        setError('Network error. Please check your connection and try again.');
+      }
+    }
   };
 
   const handleBack = () => {
@@ -107,6 +175,7 @@ const Register = () => {
                 placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
               />
             </View>
             
@@ -118,6 +187,7 @@ const Register = () => {
                 onChangeText={setFirstName}
                 placeholder="Enter your first name"
                 placeholderTextColor="#999"
+                editable={!isLoading}
               />
             </View>
             
@@ -129,6 +199,20 @@ const Register = () => {
                 onChangeText={setLastName}
                 placeholder="Enter your last name"
                 placeholderTextColor="#999"
+                editable={!isLoading}
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Department ID</Text>
+              <TextInput
+                style={styles.input}
+                value={departmentId}
+                onChangeText={setDepartmentId}
+                placeholder="Enter your department ID"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                editable={!isLoading}
               />
             </View>
             
@@ -141,6 +225,7 @@ const Register = () => {
                 placeholder="Enter your password"
                 placeholderTextColor="#999"
                 secureTextEntry
+                editable={!isLoading}
               />
             </View>
             
@@ -153,6 +238,7 @@ const Register = () => {
                 placeholder="Confirm your password"
                 placeholderTextColor="#999"
                 secureTextEntry
+                editable={!isLoading}
               />
             </View>
             
@@ -160,8 +246,13 @@ const Register = () => {
               onPress={handleRegister}
               style={styles.registerButton}
               activeOpacity={0.7}
+              disabled={isLoading}
             >
-              <Text style={styles.registerButtonText}>Register</Text>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.registerButtonText}>Register</Text>
+              )}
             </TouchableOpacity>
           </View>
           
@@ -170,6 +261,7 @@ const Register = () => {
             onPress={handleBack}
             style={styles.backButton}
             activeOpacity={0.7}
+            disabled={isLoading}
           >
             <Text style={styles.backButtonText}>← Back to Login</Text>
           </TouchableOpacity>
@@ -276,7 +368,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
-    marginTop: 10,
   },
   registerButtonText: {
     color: colors.primaryButtonText,
@@ -287,13 +378,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 10,
-    marginBottom: 20,
   },
   backButtonText: {
     color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
-  },
+  }
 });
 
 export default Register; 
