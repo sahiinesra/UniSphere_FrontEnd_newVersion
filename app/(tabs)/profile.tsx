@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching index.tsx)
@@ -252,6 +253,7 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
 );
 
 const Profile = () => {
+  const router = useRouter();
   // Profile update modal
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   // Password change modal
@@ -342,6 +344,12 @@ const Profile = () => {
     alert("Password changed successfully");
   };
 
+  const handleLogout = () => {
+    // Placeholder for any logout logic (clearing tokens, etc.)
+    // For now, just navigate to the login page
+    router.replace('/login');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -366,8 +374,13 @@ const Profile = () => {
           {/* User Info */}
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Full Name</Text>
-              <Text style={styles.infoValue}>{userData.firstName} {userData.lastName}</Text>
+              <Text style={styles.infoLabel}>First Name</Text>
+              <Text style={styles.infoValue}>{userData.firstName}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Last Name</Text>
+              <Text style={styles.infoValue}>{userData.lastName}</Text>
             </View>
             
             <View style={styles.infoRow}>
@@ -402,6 +415,15 @@ const Profile = () => {
             activeOpacity={0.7}
           >
             <Text style={[styles.buttonText, { color: colors.text }]}>Change Password</Text>
+          </TouchableOpacity>
+          
+          {/* Logout Button */}
+          <TouchableOpacity 
+            onPress={handleLogout}
+            style={[styles.buttonBase, { backgroundColor: '#FF3B30' }]}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
