@@ -1,14 +1,13 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Updated for Yellow Background & Blue Buttons)
@@ -20,14 +19,6 @@ const colors = {
   primaryButtonBackground: '#1E90FF', // Buttons are now Blue
   primaryButtonText: '#FFFFFF', // Button text is now White
 };
-
-// Interface for User Profile Data (to be fetched from backend)
-interface UserProfile {
-  name: string;
-  faculty: string;
-  email: string;
-  imageUrl: string;
-}
 
 // Custom Button Component (Neo-Brutalism style - Blue)
 interface NeoButtonProps {
@@ -50,46 +41,47 @@ const NeoButton: React.FC<NeoButtonProps> = ({ title, onPress }) => {
 export default function Index() {
   const router = useRouter();
   
+  // Remove profile state and useEffect for fetching profile data
   // State for holding profile data
-  const [profile, setProfile] = useState<UserProfile>({
-    // Initial placeholder data - will be replaced by backend data
-    name: 'Loading...',
-    faculty: 'Loading...',
-    email: 'Loading...',
-    imageUrl: 'https://via.placeholder.com/100/cccccc/000000?text=...', // Placeholder image
-  });
+  // const [profile, setProfile] = useState<UserProfile>({
+  //   // Initial placeholder data - will be replaced by backend data
+  //   name: 'Loading...',
+  //   faculty: 'Loading...',
+  //   email: 'Loading...',
+  //   imageUrl: 'https://via.placeholder.com/100/cccccc/000000?text=...', // Placeholder image
+  // });
 
   // useEffect to fetch data when the component mounts
-  useEffect(() => {
-    // --- Placeholder for Backend Fetch ---
-    // In a real application, you would fetch data here, e.g.:
-    // fetch('/api/user/profile')
-    //   .then(response => response.json())
-    //   .then((data: UserProfile) => setProfile(data))
-    //   .catch(error => {
-    //     console.error("Error fetching profile:", error);
-    //     // Handle error state if needed
-    //     setProfile({
-    //         name: 'Error Loading',
-    //         faculty: 'Could not fetch data',
-    //         email: '',
-    //         imageUrl: 'https://via.placeholder.com/100/ff0000/ffffff?text=Error', // Error placeholder
-    //     });
-    //   });
+  // useEffect(() => {
+  //   // --- Placeholder for Backend Fetch ---
+  //   // In a real application, you would fetch data here, e.g.:
+  //   // fetch('/api/user/profile')
+  //   //   .then(response => response.json())
+  //   //   .then((data: UserProfile) => setProfile(data))
+  //   //   .catch(error => {
+  //   //     console.error("Error fetching profile:", error);
+  //   //     // Handle error state if needed
+  //   //     setProfile({
+  //   //         name: 'Error Loading',
+  //   //         faculty: 'Could not fetch data',
+  //   //         email: '',
+  //   //         imageUrl: 'https://via.placeholder.com/100/ff0000/ffffff?text=Error', // Error placeholder
+  //   //     });
+  //   //   });
 
-    // Simulating a network request delay with setTimeout
-    const timer = setTimeout(() => {
-      setProfile({
-        name: 'Esra Sahin', // Data loaded from "backend"
-        faculty: 'Faculty of Engineering and Architecture', // Data loaded
-        email: 's200101@ankarabilim.edu.tr', // Data loaded
-        imageUrl: '', // Changed to a specific image
-      });
-    }, 1500); // Simulate 1.5 second load time
+  //   // Simulating a network request delay with setTimeout
+  //   const timer = setTimeout(() => {
+  //     setProfile({
+  //       name: 'Esra Sahin', // Data loaded from "backend"
+  //       faculty: 'Faculty of Engineering and Architecture', // Data loaded
+  //       email: 's200101@ankarabilim.edu.tr', // Data loaded
+  //       imageUrl: '', // Changed to a specific image
+  //     });
+  //   }, 1500); // Simulate 1.5 second load time
 
-    return () => clearTimeout(timer); // Cleanup timer on component unmount
-    // --- End Placeholder ---
-  }, []); // Empty dependency array means this runs once on mount
+  //   return () => clearTimeout(timer); // Cleanup timer on component unmount
+  //   // --- End Placeholder ---
+  // }, []); // Empty dependency array means this runs once on mount
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -104,9 +96,10 @@ export default function Index() {
           {/* Brutalist Separator Line */}
           <View style={styles.separatorLine}></View>
 
+          {/* Remove Profile Section */}
           {/* Profile Section - Uses state data */}
           {/* Card background is white */}
-          <View style={styles.card}>
+          {/* <View style={styles.card}>
             <View style={styles.profileSection}>
               <View style={styles.profileImageContainer}>
                 <Image
@@ -121,27 +114,21 @@ export default function Index() {
                 <Text style={styles.profileInfo}>{profile.email}</Text>
               </View>
             </View>
-          </View>
+          </View> */}
 
           {/* About Ankara Science University */}
-          {/* Card background is white */}
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>About Ankara Science University</Text>
             <Text style={styles.sectionContent}>
-              Ankara Science University is a leading institution in Turkey known
-              for its cutting-edge research and high-quality education in
-              various fields of study.
+              Ankara Science University is a dynamic foundation university with an innovative vision and strong academic staff. Modern campus, research-driven approach, and English-based education make it unique. We focus on hands-on learning that bridges theory and practice.
             </Text>
           </View>
 
           {/* About UniSphere */}
-          {/* Card background is white */}
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>About UniSphere</Text>
             <Text style={styles.sectionContent}>
-              UniSphere is a university social platform designed to connect
-              students, share lecture notes, and foster academic
-              collaboration.
+              UniSphere connects Ankara Science students with useful academic tools. Access past exams, share lecture notes, navigate campus maps, and join student communities - all in one app. Making university life easier and more enjoyable!
             </Text>
           </View>
 
@@ -222,38 +209,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 0,
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileImageContainer: {
-    width: 80,
-    height: 80,
-    borderWidth: 3,
-    borderColor: colors.border,
-    marginRight: 15,
-    padding: 0,
-    backgroundColor: '#ccc',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  profileDetails: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  profileInfo: {
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 2,
   },
   sectionTitle: {
     fontSize: 24,
