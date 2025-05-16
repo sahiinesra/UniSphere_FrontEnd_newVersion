@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    FlatList,
-    ListRenderItem,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  ListRenderItem,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

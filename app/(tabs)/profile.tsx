@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching index.tsx)
@@ -342,6 +343,12 @@ const Profile = () => {
     alert("Password changed successfully");
   };
 
+  const handleLogout = () => {
+    // Implementation for logging out the user
+    // This will navigate back to the login screen
+    router.replace('/login');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -402,6 +409,15 @@ const Profile = () => {
             activeOpacity={0.7}
           >
             <Text style={[styles.buttonText, { color: colors.text }]}>Change Password</Text>
+          </TouchableOpacity>
+          
+          {/* Logout Button */}
+          <TouchableOpacity 
+            onPress={handleLogout}
+            style={[styles.buttonBase, { backgroundColor: '#FF3B30' }]}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
