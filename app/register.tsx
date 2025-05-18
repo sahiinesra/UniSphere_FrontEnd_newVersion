@@ -1,18 +1,19 @@
+import axios from 'axios';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching app design)
@@ -39,33 +40,46 @@ const Register = () => {
     return emailRegex.test(email);
   };
 
-  const handleRegister = () => {
-    // Reset any previous errors
+  const handleRegister = async () => {
     setError('');
-
-    // Basic validation
+  
     if (!email || !firstName || !lastName || !password || !confirmPassword) {
       setError('All fields are required');
       return;
     }
-
-    // Validate email format
+  
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
-
+  
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
-    // Here you would implement the actual registration logic
-    // For now, just navigate back to login page with a success message
-    alert('Registration successful! Please login with your credentials.');
-    router.replace('/login');
+  
+    try {
+      const response = await axios.post('http://192.168.16.169:8080/api/v1/auth/register', {
+        departmentId: 1,
+        email,
+        firstName,
+        lastName,
+        password
+      });
+  
+      // Başarılı kayıt
+      Alert.alert('Success', 'Registration successful! Please login with your credentials.');
+      router.replace('/login');
+    } catch (error: any) {
+      // Hata yakalama
+      console.error('Registration error:', error);
+      const message = error.response?.data?.message || 'Registration failed. Please try again.';
+      Alert.alert('Error', message);
+      setError(message);
+    }
   };
+  
 
   const handleBack = () => {
     // Navigate back to login page

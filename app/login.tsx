@@ -1,18 +1,20 @@
+import axios from 'axios';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching app design)
@@ -36,21 +38,46 @@ const Login = () => {
     return emailRegex.test(email);
   };
 
-  const handleLogin = () => {
-    // Reset error
-    setEmailError('');
-
-    // Check if email is valid
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
-      return;
+  const saveTokens = async (accessToken: string, refreshToken: string) => {
+    try {
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      await SecureStore.setItemAsync('refreshToken', refreshToken);
+    } catch (error) {
+      console.error('Error saving tokens:', error);
     }
-
-    // Implement actual login logic here
-    // For now, we'll just navigate to the home page
-    router.replace('/(tabs)');
   };
+ 
+const handleLogin = async () => {
+  setEmailError('');
+
+  if (!validateEmail(email)) {
+    setEmailError('Please enter a valid email address');
+    Alert.alert('Invalid Email', 'Please enter a valid email address');
+    return;
+  }
+
+  try {
+    const response = await axios.post('http://192.168.16.169:8080/api/v1/auth/login', {
+      email,
+      password,
+    });
+
+    const { accessToken, refreshToken } = response.data.data;
+    await saveTokens(accessToken, refreshToken);
+
+    router.replace('/(tabs)');
+  } catch (error: any) {
+    console.error('Login error:', error);
+
+    if (axios.isAxiosError(error)) {
+      Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
+    } else {
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
+  }
+};
+
+  
 
   const handleForgotPassword = () => {
     // Navigate to forgot password page
@@ -129,7 +156,7 @@ const Login = () => {
           
           {/* Sign Up Section */}
           <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account?</Text>
+            <Text style={styles.signUpText}>Don&apos;t have an account?</Text>
             <TouchableOpacity onPress={handleSignUp}>
               <Text style={styles.signUpLink}>Sign up</Text>
             </TouchableOpacity>
