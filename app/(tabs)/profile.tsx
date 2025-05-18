@@ -287,7 +287,7 @@ useEffect(() => {
         return;
       }
 
-      const response = await axios.get('http://192.168.16.169:8080/api/v1/users/profile', {
+      const response = await axios.get('http://192.168.1.199:8080/api/v1/users/profile', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -347,16 +347,52 @@ useEffect(() => {
     alert("Profile photo deleted");
   };
 
-  const handleUpdateProfile = () => {
-    // Save the updated profile data
-    setUserData({
-      ...userData,
-      firstName,
-      lastName
-    });
-    setProfileModalVisible(false);
-    alert("Profile updated successfully");
+  const handleUpdateProfile = async (
+    firstName: string,
+    lastName: string,
+    onClose: () => void
+  ) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        alert('Token bulunamadı, lütfen tekrar giriş yapınız.');
+        return;
+      }
+  
+      const payload = {
+        firstName,
+        lastName,
+        password: "", // Backend zorunluysa boş gönder
+      };
+  
+      const response = await axios.put(
+        'http://192.168.1.199:8080/api/v1/users/profile',
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      // Backend doğru döndüyse local state’i güncelle
+      setUserData((prev) => ({
+        ...prev,
+        firstName,
+        lastName,
+      }));
+  
+      alert('Profile updated successfully!');
+      onClose(); // modal'ı kapat
+  
+    } catch (error: any) {
+      console.error('Profil güncellenemedi:', error?.response?.data || error.message);
+      alert('Profil güncellenirken hata oluştu.');
+    }
   };
+  
+  
 
   const handleSendVerificationCode = () => {
     // Implementation for sending verification code
@@ -479,7 +515,7 @@ useEffect(() => {
             lastName={lastName}
             setLastName={setLastName}
             photoUri={userData.photoUri}
-            handleUpdateProfile={handleUpdateProfile}
+            handleUpdateProfile={() => handleUpdateProfile(firstName, lastName, () => setProfileModalVisible(false))}
             handleUpdateProfilePhoto={handleUpdateProfilePhoto}
             handleDeleteProfilePhoto={handleDeleteProfilePhoto}
             onClose={() => setProfileModalVisible(false)}

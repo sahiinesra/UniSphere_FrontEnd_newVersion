@@ -60,7 +60,7 @@ const Register = () => {
     }
   
     try {
-      const response = await axios.post('http://192.168.16.169:8080/api/v1/auth/register', {
+      const response = await axios.post('http://192.168.1.199:8080/api/v1/auth/register', {
         departmentId: 1,
         email,
         firstName,
