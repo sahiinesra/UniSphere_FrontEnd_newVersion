@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { Stack } from 'expo-router';
-import React, { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -81,18 +83,17 @@ const initialExams: PastExam[] = [
 ];
 
 export default function PastExams() {
-  // State for exams and UI controls
-  const [exams, setExams] = useState<PastExam[]>(initialExams);
-  const [filteredExams, setFilteredExams] = useState<PastExam[]>(initialExams);
+  const [exams, setExams] = useState<PastExam[]>([]);
+  const [filteredExams, setFilteredExams] = useState<PastExam[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // State for create/update form
+
+  // UI Modals
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isAddFileModalVisible, setAddFileModalVisible] = useState(false);
   const [isDeleteFileModalVisible, setDeleteFileModalVisible] = useState(false);
-  
+
   // Form states
   const [currentExam, setCurrentExam] = useState<PastExam | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -105,6 +106,16 @@ export default function PastExams() {
     fileId: '',
     fileName: ''
   });
+
+  useEffect(() => {
+    const loadExams = async () => {
+      const data = await fetchPastExams();
+      setExams(data);
+      setFilteredExams(data);
+    };
+
+    loadExams();
+  }, []);
 
   // Handle search
   const handleSearch = (text: string) => {
@@ -124,26 +135,83 @@ export default function PastExams() {
   };
 
   // Handle create exam
-  const handleCreateExam = () => {
-    // In a real app, this would make an API call
-    const newExam: PastExam = {
-      id: Date.now().toString(),
-      year: formData.year,
-      term: formData.term,
-      departmentId: formData.departmentId,
-      courseCode: formData.courseCode,
-      title: formData.title,
-      files: []
-    };
-    
-    const updatedExams = [...exams, newExam];
+
+
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
+  
+  const fetchPastExams = async (page = 1, size = 10) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return [];
+      }
+  
+      const response = await axios.get(
+        `http://192.168.1.199:8080/api/v1/past-exams`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      const pastExams = response.data.data.pastExams;
+      return pastExams;
+  
+    } catch (error) {
+      console.error('Failed to fetch past exams:', error);
+      Alert.alert('Error', 'Failed to retrieve past exams.');
+      return [];
+    }
+  };
+
+const handleCreateExam = async () => {
+  try {
+    const token = await getAccessToken();
+
+    if (!token) {
+      Alert.alert('Error', 'JWT token bulunamadı.');
+      return;
+    }
+
+    const response = await axios.post(
+      'http://192.168.1.199:8080/api/v1/past-exams',
+      {
+        year: parseInt(formData.year, 10),
+        term: (formData.term), // önceki mesajda verdiğimiz normalization fonksiyonu
+        departmentId: parseInt(formData.departmentId, 10),
+        courseCode: formData.courseCode,
+        title: formData.title,
+        fileIds: [],
+        instructorId: 0,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const createdExam = response.data.data;
+
+    const updatedExams = [...exams, createdExam];
     setExams(updatedExams);
     setFilteredExams(updatedExams);
     setCreateModalVisible(false);
     resetForm();
-    
+
     Alert.alert('Success', 'Exam created successfully!');
-  };
+  } catch (error: any) {
+    console.error('Create exam error:', error);
+    Alert.alert('Error', 'Sınav oluşturulurken bir hata oluştu.');
+  }
+};
 
   // Handle update exam
   const handleUpdateExam = () => {
@@ -380,19 +448,19 @@ export default function PastExams() {
                 </TouchableOpacity>
               </View>
               
-              {exam.files.length > 0 && (
-                <View style={styles.filesContainer}>
-                  <Text style={styles.filesHeader}>Exam Files:</Text>
-                  {exam.files.map(file => (
-                    <View key={file.id} style={styles.fileItem}>
-                      <Ionicons name="document" size={16} color="#2196F3" />
-                      <Text style={styles.fileName}>{file.name}</Text>
-                      <Text style={styles.fileId}>ID: {file.id}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              
+              {Array.isArray(exam.files) && exam.files.length > 0 && (
+  <View style={styles.filesContainer}>
+    <Text style={styles.filesHeader}>Exam Files:</Text>
+    {exam.files.map(file => (
+      <View key={file.id} style={styles.fileItem}>
+        <Ionicons name="document" size={16} color="#2196F3" />
+        <Text style={styles.fileName}>{file.name}</Text>
+        <Text style={styles.fileId}>ID: {file.id}</Text>
+      </View>
+    ))}
+  </View>
+)}
+
               <Text style={styles.examId}>Exam ID: {exam.id}</Text>
             </View>
           ))}
