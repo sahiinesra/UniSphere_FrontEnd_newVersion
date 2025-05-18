@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching index.tsx)
@@ -61,6 +63,10 @@ interface PasswordModalContentProps {
   handleChangePassword: () => void;
   onClose: () => void;
 }
+const getAccessToken = async () => {
+  const token = await SecureStore.getItemAsync('accessToken');
+  return token;
+};
 
 // Profile Update Modal Content
 const ProfileModalContent: React.FC<ProfileModalContentProps> = ({ 
@@ -262,12 +268,49 @@ const Profile = () => {
   // Email for password reset
   const [resetEmail, setResetEmail] = useState('');
   
-  const [userData, setUserData] = useState<UserData>({
-    firstName: 'Esra',
-    lastName: 'Sahin',
-    email: 's200101@ankarabilim.edu.tr', // Email from the index page
-    photoUri: null
-  });
+
+// ...
+
+const [userData, setUserData] = useState<UserData>({
+  firstName: '',
+  lastName: '',
+  email: '',
+  photoUri: null,
+});
+
+useEffect(() => {
+  const fetchUserProfile = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        console.warn('Token bulunamadı');
+        return;
+      }
+
+      const response = await axios.get('http://192.168.16.169:8080/api/v1/users/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = response.data.data;
+
+      setUserData({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        photoUri: data.profilePhotoUrl || null,
+      });
+
+    } catch (error: any) {
+      console.error('Profil alınamadı:', error?.response?.data || error.message);
+    }
+  };
+
+  fetchUserProfile();
+}, []);
+
   
   const [firstName, setFirstName] = useState(userData.firstName);
   const [lastName, setLastName] = useState(userData.lastName);
