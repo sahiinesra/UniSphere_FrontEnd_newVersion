@@ -287,7 +287,7 @@ useEffect(() => {
         return;
       }
 
-      const response = await axios.get('http://192.168.1.199:8080/api/v1/users/profile', {
+      const response = await axios.get('http://192.168.0.27:8080/api/v1/users/profile', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

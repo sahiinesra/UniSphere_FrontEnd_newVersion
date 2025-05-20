@@ -1,17 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { Stack } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // Define colors to match the application theme
@@ -89,8 +91,8 @@ const initialNotes: Note[] = [
 
 export default function ClassNotes() {
   // State for notes and UI controls
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>(initialNotes);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
   // State for create/update form
@@ -113,6 +115,11 @@ export default function ClassNotes() {
     fileName: ''
   });
 
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
+
   // Handle search
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -129,26 +136,52 @@ export default function ClassNotes() {
     }
   };
 
-  // Handle create note
-  const handleCreateNote = () => {
-    // In a real app, this would make an API call
-    const newNote: Note = {
-      id: Date.now().toString(),
-      courseCode: formData.courseCode,
-      title: formData.title,
-      description: formData.description,
-      departmentId: formData.departmentId,
-      files: []
-    };
-    
-    const updatedNotes = [...notes, newNote];
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setCreateModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'Note created successfully!');
+  const handleCreateNote = async () => {
+    try {
+      const token = await getAccessToken();
+  
+      if (!token) {
+        Alert.alert('Error', 'JWT token bulunamadı.');
+        return;
+      }
+  
+      const noteData = {
+        content: formData.content,
+        courseCode: formData.courseCode,
+        departmentId: parseInt(formData.departmentId, 10),
+        description: formData.description,
+        files: [], // seçilen dosya ID'leri buraya eklenmeli
+        title: formData.title,
+        userId: 1, // auth sisteminden dinamik olarak alınmalı
+      };
+  
+      const response = await axios.post(
+        'http://192.168.0.27:8080/api/v1/class-notes',
+        noteData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      const createdNote = response.data.data;
+  
+      const updatedNotes = [...notes, createdNote];
+      setNotes(updatedNotes);
+      setFilteredNotes(updatedNotes);
+      setCreateModalVisible(false);
+      resetForm();
+  
+      Alert.alert('Success', 'Note created successfully!');
+    } catch (error: any) {
+      console.error('Create note error:', error.response?.data || error.message);
+      Alert.alert('Error', 'An error occurred while creating the note.');
+    }
   };
+  
+  
 
   // Handle update note
   const handleUpdateNote = () => {
@@ -384,18 +417,19 @@ export default function ClassNotes() {
               
               <Text style={styles.sectionContent}>{note.description}</Text>
               
-              {note.files.length > 0 && (
-                <View style={styles.filesContainer}>
-                  <Text style={styles.filesHeader}>Attached Files:</Text>
-                  {note.files.map(file => (
-                    <View key={file.id} style={styles.fileItem}>
-                      <Ionicons name="document" size={16} color="#2196F3" />
-                      <Text style={styles.fileName}>{file.name}</Text>
-                      <Text style={styles.fileId}>ID: {file.id}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {note.files?.length > 0 && (
+  <View style={styles.filesContainer}>
+    <Text style={styles.filesHeader}>Attached Files:</Text>
+    {note.files.map(file => (
+      <View key={file.id} style={styles.fileItem}>
+        <Ionicons name="document" size={16} color="#2196F3" />
+        <Text style={styles.fileName}>{file.name}</Text>
+        <Text style={styles.fileId}>ID: {file.id}</Text>
+      </View>
+    ))}
+  </View>
+)}
+
               
               <Text style={styles.noteId}>Note ID: {note.id}</Text>
             </View>

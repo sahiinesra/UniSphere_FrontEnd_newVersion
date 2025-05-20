@@ -43,44 +43,6 @@ interface FormData {
   fileName: string;
 }
 
-// Mock data for past exams
-const initialExams: PastExam[] = [
-  {
-    id: '1',
-    year: '2023',
-    term: 'Fall',
-    departmentId: 'CS',
-    courseCode: 'CS101',
-    title: 'Introduction to Programming',
-    files: [
-      { id: 'f1', name: 'Midterm_2023.pdf' },
-      { id: 'f2', name: 'Final_2023.pdf' }
-    ]
-  },
-  {
-    id: '2',
-    year: '2023',
-    term: 'Spring',
-    departmentId: 'MATH',
-    courseCode: 'MATH201',
-    title: 'Calculus I',
-    files: [
-      { id: 'f3', name: 'Midterm_Spring2023.pdf' }
-    ]
-  },
-  {
-    id: '3',
-    year: '2022',
-    term: 'Fall',
-    departmentId: 'ENG',
-    courseCode: 'ENG301',
-    title: 'Circuit Analysis',
-    files: [
-      { id: 'f4', name: 'Quiz1_2022.pdf' },
-      { id: 'f5', name: 'Final_2022.pdf' }
-    ]
-  }
-];
 
 export default function PastExams() {
   const [exams, setExams] = useState<PastExam[]>([]);
@@ -151,7 +113,7 @@ export default function PastExams() {
       }
   
       const response = await axios.get(
-        `http://192.168.1.199:8080/api/v1/past-exams`,
+        `http://192.168.0.27:8080/api/v1/past-exams`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -180,7 +142,7 @@ const handleCreateExam = async () => {
     }
 
     const response = await axios.post(
-      'http://192.168.1.199:8080/api/v1/past-exams',
+      'http://192.168.0.27:8080/api/v1/past-exams',
       {
         year: parseInt(formData.year, 10),
         term: (formData.term), // önceki mesajda verdiğimiz normalization fonksiyonu
