@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -88,695 +88,6 @@ const initialNotes: Note[] = [
     ]
   }
 ];
-
-export default function ClassNotes() {
-  // State for notes and UI controls
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // State for create/update form
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
-  const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
-  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [isAddFileModalVisible, setAddFileModalVisible] = useState(false);
-  const [isDeleteFileModalVisible, setDeleteFileModalVisible] = useState(false);
-  
-  // Form states
-  const [currentNote, setCurrentNote] = useState<Note | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    courseCode: '',
-    title: '',
-    description: '',
-    content: '',
-    departmentId: '',
-    noteId: '',
-    fileId: '',
-    fileName: ''
-  });
-
-  const getAccessToken = async () => {
-    const token = await SecureStore.getItemAsync('accessToken');
-    return token;
-  };
-
-  // Handle search
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    
-    if (text) {
-      const filtered = notes.filter(note => 
-        note.title.toLowerCase().includes(text.toLowerCase()) ||
-        note.courseCode.toLowerCase().includes(text.toLowerCase()) ||
-        note.description.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredNotes(filtered);
-    } else {
-      setFilteredNotes(notes);
-    }
-  };
-
-  const handleCreateNote = async () => {
-    try {
-      const token = await getAccessToken();
-  
-      if (!token) {
-        Alert.alert('Error', 'JWT token bulunamadı.');
-        return;
-      }
-  
-      const noteData = {
-        content: formData.content,
-        courseCode: formData.courseCode,
-        departmentId: parseInt(formData.departmentId, 10),
-        description: formData.description,
-        files: [], // seçilen dosya ID'leri buraya eklenmeli
-        title: formData.title,
-        userId: 1, // auth sisteminden dinamik olarak alınmalı
-      };
-  
-      const response = await axios.post(
-        'http://192.168.0.27:8080/api/v1/class-notes',
-        noteData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-  
-      const createdNote = response.data.data;
-  
-      const updatedNotes = [...notes, createdNote];
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
-      setCreateModalVisible(false);
-      resetForm();
-  
-      Alert.alert('Success', 'Note created successfully!');
-    } catch (error: any) {
-      console.error('Create note error:', error.response?.data || error.message);
-      Alert.alert('Error', 'An error occurred while creating the note.');
-    }
-  };
-  
-  
-
-  // Handle update note
-  const handleUpdateNote = () => {
-    if (!currentNote) return;
-    
-    // In a real app, this would make an API call
-    const updatedNotes = notes.map(note => 
-      note.id === currentNote.id 
-        ? {
-            ...note,
-            courseCode: formData.courseCode,
-            title: formData.title,
-            description: formData.description,
-            departmentId: formData.departmentId
-          }
-        : note
-    );
-    
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setUpdateModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'Note updated successfully!');
-  };
-
-  // Handle delete note
-  const handleDeleteNote = () => {
-    if (!formData.noteId) {
-      Alert.alert('Error', 'Please enter a valid Note ID');
-      return;
-    }
-    
-    // In a real app, this would make an API call
-    const updatedNotes = notes.filter(note => note.id !== formData.noteId);
-    
-    if (updatedNotes.length === notes.length) {
-      Alert.alert('Error', 'Note not found with the given ID');
-      return;
-    }
-    
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setDeleteModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'Note deleted successfully!');
-  };
-
-  // Handle add file to note
-  const handleAddFile = () => {
-    if (!formData.noteId) {
-      Alert.alert('Error', 'Please enter a valid Note ID');
-      return;
-    }
-    
-    // In a real app, this would make an API call
-    const updatedNotes = notes.map(note => {
-      if (note.id === formData.noteId) {
-        return {
-          ...note,
-          files: [
-            ...note.files, 
-            { id: Date.now().toString(), name: formData.fileName || 'newfile.pdf' }
-          ]
-        };
-      }
-      return note;
-    });
-    
-    if (JSON.stringify(updatedNotes) === JSON.stringify(notes)) {
-      Alert.alert('Error', 'Note not found with the given ID');
-      return;
-    }
-    
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setAddFileModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'File added successfully!');
-  };
-
-  // Handle delete file from note
-  const handleDeleteFile = () => {
-    if (!formData.noteId || !formData.fileId) {
-      Alert.alert('Error', 'Please enter valid Note ID and File ID');
-      return;
-    }
-    
-    // In a real app, this would make an API call
-    let fileFound = false;
-    const updatedNotes = notes.map(note => {
-      if (note.id === formData.noteId) {
-        const updatedFiles = note.files.filter(file => {
-          if (file.id === formData.fileId) {
-            fileFound = true;
-            return false;
-          }
-          return true;
-        });
-        
-        return { ...note, files: updatedFiles };
-      }
-      return note;
-    });
-    
-    if (!fileFound) {
-      Alert.alert('Error', 'Note or file not found with the given IDs');
-      return;
-    }
-    
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setDeleteFileModalVisible(false);
-    resetForm();
-    
-    Alert.alert('Success', 'File deleted successfully!');
-  };
-
-  // Initialize update form with current note data
-  const initUpdateForm = (note: Note) => {
-    setCurrentNote(note);
-    setFormData({
-      courseCode: note.courseCode,
-      title: note.title,
-      description: note.description,
-      departmentId: note.departmentId,
-      content: '',
-      noteId: note.id,
-      fileId: '',
-      fileName: ''
-    });
-    setUpdateModalVisible(true);
-  };
-
-  // Reset form
-  const resetForm = () => {
-    setFormData({
-      courseCode: '',
-      title: '',
-      description: '',
-      content: '',
-      departmentId: '',
-      noteId: '',
-      fileId: '',
-      fileName: ''
-    });
-    setCurrentNote(null);
-  };
-
-  return (
-    <>
-      <Stack.Screen options={{ 
-        title: 'Class Notes',
-      }} />
-      
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for notes..."
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
-            <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
-          </View>
-          
-          {/* Management Buttons - Only visible to authorized users */}
-          <View style={styles.managementButtons}>
-            <TouchableOpacity 
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setCreateModalVisible(true);
-              }}
-            >
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Create New</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteModalVisible(true);
-              }}
-            >
-              <Ionicons name="trash" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete Note</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setAddFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-attach" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Add File</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-text" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete File</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Notes List */}
-          {filteredNotes.map(note => (
-            <View key={note.id} style={styles.card}>
-              <View style={styles.noteHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>{note.title}</Text>
-                  <Text style={styles.courseCode}>{note.courseCode} | {note.departmentId}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={() => initUpdateForm(note)}
-                >
-                  <Ionicons name="pencil" size={20} color="#2196F3" />
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.sectionContent}>{note.description}</Text>
-              
-              {note.files?.length > 0 && (
-  <View style={styles.filesContainer}>
-    <Text style={styles.filesHeader}>Attached Files:</Text>
-    {note.files.map(file => (
-      <View key={file.id} style={styles.fileItem}>
-        <Ionicons name="document" size={16} color="#2196F3" />
-        <Text style={styles.fileName}>{file.name}</Text>
-        <Text style={styles.fileId}>ID: {file.id}</Text>
-      </View>
-    ))}
-  </View>
-)}
-
-              
-              <Text style={styles.noteId}>Note ID: {note.id}</Text>
-            </View>
-          ))}
-          
-          {filteredNotes.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="document-text-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>No notes found</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-      
-      {/* Create Note Modal */}
-      <Modal
-        visible={isCreateModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Create New Class Note</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Course Code"
-                    value={formData.courseCode}
-                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Title"
-                    value={formData.title}
-                    onChangeText={(text) => setFormData({...formData, title: text})}
-                  />
-                  
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Description"
-                    multiline
-                    value={formData.description}
-                    onChangeText={(text) => setFormData({...formData, description: text})}
-                  />
-                  
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Content"
-                    multiline
-                    value={formData.content}
-                    onChangeText={(text) => setFormData({...formData, content: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Department ID"
-                    value={formData.departmentId}
-                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
-                  />
-                  
-                  <TouchableOpacity 
-                    style={styles.uploadFileButton}
-                    onPress={() => {
-                      Alert.alert('Upload', 'File upload will be implemented');
-                    }}
-                  >
-                    <Ionicons name="document-attach" size={20} color="#fff" />
-                    <Text style={styles.uploadFileButtonText}>Add File</Text>
-                  </TouchableOpacity>
-                  
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setCreateModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleCreateNote}
-                    >
-                      <Text style={styles.modalButtonText}>Create</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Update Note Modal */}
-      <Modal
-        visible={isUpdateModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Update Class Note</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Course Code"
-                    value={formData.courseCode}
-                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Title"
-                    value={formData.title}
-                    onChangeText={(text) => setFormData({...formData, title: text})}
-                  />
-                  
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Description"
-                    multiline
-                    value={formData.description}
-                    onChangeText={(text) => setFormData({...formData, description: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Department ID"
-                    value={formData.departmentId}
-                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
-                  />
-                  
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setUpdateModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleUpdateNote}
-                    >
-                      <Text style={styles.modalButtonText}>Update</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Delete Note Modal */}
-      <Modal
-        visible={isDeleteModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Delete Class Note</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Note ID"
-                    value={formData.noteId}
-                    onChangeText={(text) => setFormData({...formData, noteId: text})}
-                  />
-                  
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setDeleteModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.deleteButton]}
-                      onPress={handleDeleteNote}
-                    >
-                      <Text style={styles.modalButtonText}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Add File Modal */}
-      <Modal
-        visible={isAddFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Add File to Note</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Note ID"
-                    value={formData.noteId}
-                    onChangeText={(text) => setFormData({...formData, noteId: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File Name (e.g. lecture.pdf)"
-                    value={formData.fileName}
-                    onChangeText={(text) => setFormData({...formData, fileName: text})}
-                  />
-                  
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setAddFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleAddFile}
-                    >
-                      <Text style={styles.modalButtonText}>Add File</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Delete File Modal */}
-      <Modal
-        visible={isDeleteFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Delete File from Note</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Note ID"
-                    value={formData.noteId}
-                    onChangeText={(text) => setFormData({...formData, noteId: text})}
-                  />
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File ID"
-                    value={formData.fileId}
-                    onChangeText={(text) => setFormData({...formData, fileId: text})}
-                  />
-                  
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setDeleteFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.deleteButton]}
-                      onPress={handleDeleteFile}
-                    >
-                      <Text style={styles.modalButtonText}>Delete File</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </>
-  );
-}
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -1000,4 +311,722 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 14,
   },
-}); 
+  noteTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 5,
+  },
+  noteMeta: {
+    fontSize: 15,
+    color: '#2196F3',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+});
+
+export default function ClassNotes() {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [classNotes, setClassNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // State for create/update form
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isAddFileModalVisible, setAddFileModalVisible] = useState(false);
+  const [isDeleteFileModalVisible, setDeleteFileModalVisible] = useState(false);
+
+  // Form states
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [formData, setFormData] = useState<FormData>({
+    courseCode: '',
+    title: '',
+    description: '',
+    content: '',
+    departmentId: '',
+    noteId: '',
+    fileId: '',
+    fileName: ''
+  });
+
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
+
+  // Handle search
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+
+    if (text) {
+      const filtered = notes.filter(note =>
+        note.title.toLowerCase().includes(text.toLowerCase()) ||
+        note.courseCode.toLowerCase().includes(text.toLowerCase()) ||
+        note.description.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredNotes(filtered);
+    } else {
+      setFilteredNotes(notes);
+    }
+  };
+
+  //get notes
+  const fetchClassNotes = async (page = 1, size = 10) => {
+    try {
+      const token = await SecureStore.getItemAsync('accessToken');
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return [];
+      }
+
+      const response = await axios.get(
+        'http://192.168.0.27:8080/api/v1/class-notes',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          params: {
+            page,
+            size,
+          },
+        }
+      );
+
+      const classNotes = response.data.data.classNotes;
+      return classNotes;
+
+    } catch (error) {
+      console.error('Failed to fetch class notes:', error);
+      Alert.alert('Error', 'Failed to retrieve class notes.');
+      return [];
+    }
+  };
+  useEffect(() => {
+    const loadClassNotes = async () => {
+      console.log('loadClassNotes called');
+      setLoading(true);
+      const notes = await fetchClassNotes();
+      console.log('Fetched notes:', notes);
+      setClassNotes(notes);
+      setLoading(false);
+    };
+
+
+    loadClassNotes();
+  }, []);
+
+  // create note
+  const handleCreateNote = async () => {
+    try {
+      const token = await getAccessToken();
+
+      if (!token) {
+        Alert.alert('Error', 'JWT token bulunamadı.');
+        return;
+      }
+
+      const noteData = {
+        content: formData.content,
+        courseCode: formData.courseCode,
+        departmentId: parseInt(formData.departmentId, 10),
+        description: formData.description,
+        files: [], // seçilen dosya ID'leri buraya eklenmeli
+        title: formData.title,
+        userId: 1, // auth sisteminden dinamik olarak alınmalı
+      };
+
+      const response = await axios.post(
+        'http://192.168.0.27:8080/api/v1/class-notes',
+        noteData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const createdNote = response.data.data;
+
+      const updatedNotes = [...notes, createdNote];
+      setNotes(updatedNotes);
+      setFilteredNotes(updatedNotes);
+      setCreateModalVisible(false);
+      resetForm();
+
+      Alert.alert('Success', 'Note created successfully!');
+    } catch (error: any) {
+      console.error('Create note error:', error.response?.data || error.message);
+      Alert.alert('Error', 'An error occurred while creating the note.');
+    }
+  };
+
+  // Handle update note
+  const handleUpdateNote = () => {
+    if (!currentNote) return;
+
+    // In a real app, this would make an API call
+    const updatedNotes = notes.map(note =>
+      note.id === currentNote.id
+        ? {
+          ...note,
+          courseCode: formData.courseCode,
+          title: formData.title,
+          description: formData.description,
+          departmentId: formData.departmentId
+        }
+        : note
+    );
+
+    setNotes(updatedNotes);
+    setFilteredNotes(updatedNotes);
+    setUpdateModalVisible(false);
+    resetForm();
+
+    Alert.alert('Success', 'Note updated successfully!');
+  };
+
+  // Handle delete note
+  const handleDeleteNote = () => {
+    if (!formData.noteId) {
+      Alert.alert('Error', 'Please enter a valid Note ID');
+      return;
+    }
+
+    // In a real app, this would make an API call
+    const updatedNotes = notes.filter(note => note.id !== formData.noteId);
+
+    if (updatedNotes.length === notes.length) {
+      Alert.alert('Error', 'Note not found with the given ID');
+      return;
+    }
+
+    setNotes(updatedNotes);
+    setFilteredNotes(updatedNotes);
+    setDeleteModalVisible(false);
+    resetForm();
+
+    Alert.alert('Success', 'Note deleted successfully!');
+  };
+
+  // Handle add file to note
+  const handleAddFile = () => {
+    if (!formData.noteId) {
+      Alert.alert('Error', 'Please enter a valid Note ID');
+      return;
+    }
+
+    // In a real app, this would make an API call
+    const updatedNotes = notes.map(note => {
+      if (note.id === formData.noteId) {
+        return {
+          ...note,
+          files: [
+            ...note.files,
+            { id: Date.now().toString(), name: formData.fileName || 'newfile.pdf' }
+          ]
+        };
+      }
+      return note;
+    });
+
+    if (JSON.stringify(updatedNotes) === JSON.stringify(notes)) {
+      Alert.alert('Error', 'Note not found with the given ID');
+      return;
+    }
+
+    setNotes(updatedNotes);
+    setFilteredNotes(updatedNotes);
+    setAddFileModalVisible(false);
+    resetForm();
+
+    Alert.alert('Success', 'File added successfully!');
+  };
+
+  // Handle delete file from note
+  const handleDeleteFile = () => {
+    if (!formData.noteId || !formData.fileId) {
+      Alert.alert('Error', 'Please enter valid Note ID and File ID');
+      return;
+    }
+
+    // In a real app, this would make an API call
+    let fileFound = false;
+    const updatedNotes = notes.map(note => {
+      if (note.id === formData.noteId) {
+        const updatedFiles = note.files.filter(file => {
+          if (file.id === formData.fileId) {
+            fileFound = true;
+            return false;
+          }
+          return true;
+        });
+
+        return { ...note, files: updatedFiles };
+      }
+      return note;
+    });
+
+    if (!fileFound) {
+      Alert.alert('Error', 'Note or file not found with the given IDs');
+      return;
+    }
+
+    setNotes(updatedNotes);
+    setFilteredNotes(updatedNotes);
+    setDeleteFileModalVisible(false);
+    resetForm();
+
+    Alert.alert('Success', 'File deleted successfully!');
+  };
+
+  // Initialize update form with current note data
+  const initUpdateForm = (note: Note) => {
+    setCurrentNote(note);
+    setFormData({
+      courseCode: note.courseCode,
+      title: note.title,
+      description: note.description,
+      departmentId: note.departmentId,
+      content: '',
+      noteId: note.id,
+      fileId: '',
+      fileName: ''
+    });
+    setUpdateModalVisible(true);
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      courseCode: '',
+      title: '',
+      description: '',
+      content: '',
+      departmentId: '',
+      noteId: '',
+      fileId: '',
+      fileName: ''
+    });
+    setCurrentNote(null);
+  };
+
+  return (
+    <>
+      <Stack.Screen options={{
+        title: 'Class Notes',
+      }} />
+
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.container}>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for notes..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
+          </View>
+
+          {/* Management Buttons - Only visible to authorized users */}
+          <View style={styles.managementButtons}>
+            <TouchableOpacity
+              style={styles.managementButton}
+              onPress={() => {
+                resetForm();
+                setCreateModalVisible(true);
+              }}
+            >
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={styles.managementButtonText}>Create New</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.managementButton}
+              onPress={() => {
+                resetForm();
+                setDeleteModalVisible(true);
+              }}
+            >
+              <Ionicons name="trash" size={20} color="#fff" />
+              <Text style={styles.managementButtonText}>Delete Note</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.managementButton}
+              onPress={() => {
+                resetForm();
+                setAddFileModalVisible(true);
+              }}
+            >
+              <Ionicons name="document-attach" size={20} color="#fff" />
+              <Text style={styles.managementButtonText}>Add File</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.managementButton}
+              onPress={() => {
+                resetForm();
+                setDeleteFileModalVisible(true);
+              }}
+            >
+              <Ionicons name="document-text" size={20} color="#fff" />
+              <Text style={styles.managementButtonText}>Delete File</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Class Notes List */}
+          {classNotes.map(note => (
+            <View key={note.id} style={styles.card}>
+              <View style={styles.noteHeader}>
+                <View>
+                  <Text style={styles.noteTitle}>{note.title}</Text>
+                  <Text style={styles.noteMeta}>
+                    {note.courseCode} | Dept ID: {note.departmentId}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Create Note Modal */}
+      <Modal
+        visible={isCreateModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Create New Class Note</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Course Code"
+                    value={formData.courseCode}
+                    onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Title"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData({ ...formData, title: text })}
+                  />
+
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Description"
+                    multiline
+                    value={formData.description}
+                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  />
+
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Content"
+                    multiline
+                    value={formData.content}
+                    onChangeText={(text) => setFormData({ ...formData, content: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Department ID"
+                    value={formData.departmentId}
+                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.uploadFileButton}
+                    onPress={() => {
+                      Alert.alert('Upload', 'File upload will be implemented');
+                    }}
+                  >
+                    <Ionicons name="document-attach" size={20} color="#fff" />
+                    <Text style={styles.uploadFileButtonText}>Add File</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setCreateModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleCreateNote}
+                    >
+                      <Text style={styles.modalButtonText}>Create</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Update Note Modal */}
+      <Modal
+        visible={isUpdateModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Update Class Note</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Course Code"
+                    value={formData.courseCode}
+                    onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Title"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData({ ...formData, title: text })}
+                  />
+
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Description"
+                    multiline
+                    value={formData.description}
+                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Department ID"
+                    value={formData.departmentId}
+                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
+                  />
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setUpdateModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleUpdateNote}
+                    >
+                      <Text style={styles.modalButtonText}>Update</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Delete Note Modal */}
+      <Modal
+        visible={isDeleteModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Delete Class Note</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({ ...formData, noteId: text })}
+                  />
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setDeleteModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={handleDeleteNote}
+                    >
+                      <Text style={styles.modalButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Add File Modal */}
+      <Modal
+        visible={isAddFileModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Add File to Note</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({ ...formData, noteId: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="File Name (e.g. lecture.pdf)"
+                    value={formData.fileName}
+                    onChangeText={(text) => setFormData({ ...formData, fileName: text })}
+                  />
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setAddFileModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleAddFile}
+                    >
+                      <Text style={styles.modalButtonText}>Add File</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Delete File Modal */}
+      <Modal
+        visible={isDeleteFileModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Delete File from Note</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Note ID"
+                    value={formData.noteId}
+                    onChangeText={(text) => setFormData({ ...formData, noteId: text })}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="File ID"
+                    value={formData.fileId}
+                    onChangeText={(text) => setFormData({ ...formData, fileId: text })}
+                  />
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setDeleteFileModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={handleDeleteFile}
+                    >
+                      <Text style={styles.modalButtonText}>Delete File</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
+  );
+} 

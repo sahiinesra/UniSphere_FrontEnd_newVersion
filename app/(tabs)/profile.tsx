@@ -69,16 +69,16 @@ const getAccessToken = async () => {
 };
 
 // Profile Update Modal Content
-const ProfileModalContent: React.FC<ProfileModalContentProps> = ({ 
-  firstName, 
-  setFirstName, 
-  lastName, 
+const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
+  firstName,
+  setFirstName,
+  lastName,
   setLastName,
   photoUri,
   handleUpdateProfile,
   handleUpdateProfilePhoto,
   handleDeleteProfilePhoto,
-  onClose 
+  onClose
 }) => (
   <View style={styles.modalContent}>
     <View style={styles.modalHeader}>
@@ -87,7 +87,7 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
         <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
     </View>
-    
+
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
@@ -109,17 +109,17 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
                 </View>
               )}
             </View>
-            
+
             <View style={styles.photoButtonsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleUpdateProfilePhoto}
                 style={styles.photoButton}
               >
                 <Ionicons name="create-outline" size={18} color={colors.text} />
                 <Text style={styles.photoButtonText}>Edit Photo</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 onPress={handleDeleteProfilePhoto}
                 style={[styles.photoButton, styles.deleteButton]}
                 disabled={!photoUri}
@@ -129,9 +129,9 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={styles.separator} />
-          
+
           {/* Personal Information */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>First Name</Text>
@@ -142,7 +142,7 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
               placeholderTextColor="#999"
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Last Name</Text>
             <TextInput
@@ -152,8 +152,8 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
               placeholderTextColor="#999"
             />
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={handleUpdateProfile}
             style={styles.buttonBase}
             activeOpacity={0.7}
@@ -167,17 +167,17 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
 );
 
 // Password Change Modal Content
-const PasswordModalContent: React.FC<PasswordModalContentProps> = ({ 
-  resetEmail, 
-  setResetEmail, 
-  emailCode, 
-  setEmailCode, 
-  newPassword, 
-  setNewPassword, 
-  verificationSent, 
-  handleSendVerificationCode, 
-  handleChangePassword, 
-  onClose 
+const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
+  resetEmail,
+  setResetEmail,
+  emailCode,
+  setEmailCode,
+  newPassword,
+  setNewPassword,
+  verificationSent,
+  handleSendVerificationCode,
+  handleChangePassword,
+  onClose
 }) => (
   <View style={styles.modalContent}>
     <View style={styles.modalHeader}>
@@ -186,7 +186,7 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
         <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
     </View>
-    
+
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
@@ -206,9 +206,9 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
               autoCapitalize="none"
             />
           </View>
-          
+
           {!verificationSent && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleSendVerificationCode}
               style={styles.buttonBase}
               activeOpacity={0.7}
@@ -216,7 +216,7 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
               <Text style={styles.buttonText}>Send Verification Code</Text>
             </TouchableOpacity>
           )}
-          
+
           {verificationSent && (
             <>
               <View style={styles.inputGroup}>
@@ -230,7 +230,7 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
                   placeholder="Enter verification code"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>New Password</Text>
                 <TextInput
@@ -242,8 +242,8 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
                   placeholder="Enter new password"
                 />
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 onPress={handleChangePassword}
                 style={styles.buttonBase}
                 activeOpacity={0.7}
@@ -267,51 +267,51 @@ const Profile = () => {
   const [verificationSent, setVerificationSent] = useState(false);
   // Email for password reset
   const [resetEmail, setResetEmail] = useState('');
-  
 
-// ...
 
-const [userData, setUserData] = useState<UserData>({
-  firstName: '',
-  lastName: '',
-  email: '',
-  photoUri: null,
-});
+  // ...
 
-useEffect(() => {
-  const fetchUserProfile = async () => {
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        console.warn('Token bulunamadı');
-        return;
+  const [userData, setUserData] = useState<UserData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    photoUri: null,
+  });
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          console.warn('Token bulunamadı');
+          return;
+        }
+
+        const response = await axios.get('http://192.168.0.27:8080/api/v1/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = response.data.data;
+
+        setUserData({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          photoUri: data.profilePhotoUrl || null,
+        });
+
+      } catch (error: any) {
+        console.error('Profil alınamadı:', error?.response?.data || error.message);
       }
+    };
 
-      const response = await axios.get('http://192.168.0.27:8080/api/v1/users/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    fetchUserProfile();
+  }, []);
 
-      const data = response.data.data;
 
-      setUserData({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        photoUri: data.profilePhotoUrl || null,
-      });
-
-    } catch (error: any) {
-      console.error('Profil alınamadı:', error?.response?.data || error.message);
-    }
-  };
-
-  fetchUserProfile();
-}, []);
-
-  
   const [firstName, setFirstName] = useState(userData.firstName);
   const [lastName, setLastName] = useState(userData.lastName);
   const [newPassword, setNewPassword] = useState('');
@@ -358,13 +358,13 @@ useEffect(() => {
         alert('Token bulunamadı, lütfen tekrar giriş yapınız.');
         return;
       }
-  
+
       const payload = {
         firstName,
         lastName,
         password: "", // Backend zorunluysa boş gönder
       };
-  
+
       const response = await axios.put(
         'http://192.168.1.199:8080/api/v1/users/profile',
         payload,
@@ -375,24 +375,24 @@ useEffect(() => {
           },
         }
       );
-  
+
       // Backend doğru döndüyse local state’i güncelle
       setUserData((prev) => ({
         ...prev,
         firstName,
         lastName,
       }));
-  
+
       alert('Profile updated successfully!');
       onClose(); // modal'ı kapat
-  
+
     } catch (error: any) {
       console.error('Profil güncellenemedi:', error?.response?.data || error.message);
       alert('Profil güncellenirken hata oluştu.');
     }
   };
-  
-  
+
+
 
   const handleSendVerificationCode = () => {
     // Implementation for sending verification code
@@ -401,7 +401,7 @@ useEffect(() => {
       alert("Please enter an email address");
       return;
     }
-    
+
     setVerificationSent(true);
     alert(`Verification code sent to ${resetEmail}`);
   };
@@ -413,7 +413,7 @@ useEffect(() => {
       alert("Please enter both verification code and new password");
       return;
     }
-    
+
     setPasswordModalVisible(false);
     setVerificationSent(false);
     setNewPassword('');
@@ -448,19 +448,19 @@ useEffect(() => {
               )}
             </View>
           </View>
-          
+
           {/* User Info */}
           <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Full Name</Text>
               <Text style={styles.infoValue}>{userData.firstName} {userData.lastName}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email</Text>
               <Text style={styles.infoValue}>{userData.email}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Role</Text>
               <View style={styles.roleTag}>
@@ -468,18 +468,18 @@ useEffect(() => {
               </View>
             </View>
           </View>
-          
+
           {/* Profile Update Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setProfileModalVisible(true)}
             style={styles.buttonBase}
             activeOpacity={0.7}
           >
             <Text style={styles.buttonText}>Update Profile</Text>
           </TouchableOpacity>
-          
+
           {/* Change Password Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               setPasswordModalVisible(true);
               setVerificationSent(false);
@@ -489,9 +489,9 @@ useEffect(() => {
           >
             <Text style={[styles.buttonText, { color: colors.text }]}>Change Password</Text>
           </TouchableOpacity>
-          
+
           {/* Logout Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleLogout}
             style={[styles.buttonBase, { backgroundColor: '#FF3B30' }]}
             activeOpacity={0.7}
@@ -500,7 +500,7 @@ useEffect(() => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
       {/* Profile Update Modal */}
       <Modal
         animationType="slide"
@@ -509,7 +509,7 @@ useEffect(() => {
         onRequestClose={() => setProfileModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <ProfileModalContent 
+          <ProfileModalContent
             firstName={firstName}
             setFirstName={setFirstName}
             lastName={lastName}
@@ -522,7 +522,7 @@ useEffect(() => {
           />
         </View>
       </Modal>
-      
+
       {/* Password Change Modal */}
       <Modal
         animationType="slide"
@@ -534,7 +534,7 @@ useEffect(() => {
         }}
       >
         <View style={styles.modalOverlay}>
-          <PasswordModalContent 
+          <PasswordModalContent
             resetEmail={resetEmail}
             setResetEmail={setResetEmail}
             emailCode={emailCode}

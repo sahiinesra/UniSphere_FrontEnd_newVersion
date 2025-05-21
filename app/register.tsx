@@ -42,23 +42,23 @@ const Register = () => {
 
   const handleRegister = async () => {
     setError('');
-  
+
     if (!email || !firstName || !lastName || !password || !confirmPassword) {
       setError('All fields are required');
       return;
     }
-  
+
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
-  
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-  
+
     try {
       const response = await axios.post('http://192.168.0.27:8080/api/v1/auth/register', {
         departmentId: 1,
@@ -67,7 +67,7 @@ const Register = () => {
         lastName,
         password
       });
-  
+
       // Başarılı kayıt
       Alert.alert('Success', 'Registration successful! Please login with your credentials.');
       router.replace('/login');
@@ -79,7 +79,7 @@ const Register = () => {
       setError(message);
     }
   };
-  
+
 
   const handleBack = () => {
     // Navigate back to login page
@@ -97,7 +97,7 @@ const Register = () => {
           {/* Logo and App Name */}
           <View style={styles.logoContainer}>
             <View style={styles.logoBorder}>
-              <Image 
+              <Image
                 source={require('../assets/images/image.png')}
                 style={styles.logo}
               />
@@ -108,9 +108,9 @@ const Register = () => {
           {/* Registration Form */}
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Register</Text>
-            
+
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
               <TextInput
@@ -123,7 +123,7 @@ const Register = () => {
                 autoCapitalize="none"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>First Name</Text>
               <TextInput
@@ -134,7 +134,7 @@ const Register = () => {
                 placeholderTextColor="#999"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Last Name</Text>
               <TextInput
@@ -145,7 +145,7 @@ const Register = () => {
                 placeholderTextColor="#999"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <TextInput
@@ -157,7 +157,7 @@ const Register = () => {
                 secureTextEntry
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <TextInput
@@ -169,8 +169,8 @@ const Register = () => {
                 secureTextEntry
               />
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={handleRegister}
               style={styles.registerButton}
               activeOpacity={0.7}
@@ -178,9 +178,9 @@ const Register = () => {
               <Text style={styles.registerButtonText}>Register</Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Back Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleBack}
             style={styles.backButton}
             activeOpacity={0.7}

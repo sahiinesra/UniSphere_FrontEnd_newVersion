@@ -82,9 +82,9 @@ export default function PastExams() {
   // Handle search
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    
+
     if (text) {
-      const filtered = exams.filter(exam => 
+      const filtered = exams.filter(exam =>
         exam.title.toLowerCase().includes(text.toLowerCase()) ||
         exam.courseCode.toLowerCase().includes(text.toLowerCase()) ||
         exam.term.toLowerCase().includes(text.toLowerCase()) ||
@@ -103,7 +103,7 @@ export default function PastExams() {
     const token = await SecureStore.getItemAsync('accessToken');
     return token;
   };
-  
+
   const fetchPastExams = async (page = 1, size = 10) => {
     try {
       const token = await getAccessToken();
@@ -111,7 +111,7 @@ export default function PastExams() {
         Alert.alert('Error', 'JWT token not found.');
         return [];
       }
-  
+
       const response = await axios.get(
         `http://192.168.0.27:8080/api/v1/past-exams`,
         {
@@ -121,10 +121,10 @@ export default function PastExams() {
           },
         }
       );
-  
+
       const pastExams = response.data.data.pastExams;
       return pastExams;
-  
+
     } catch (error) {
       console.error('Failed to fetch past exams:', error);
       Alert.alert('Error', 'Failed to retrieve past exams.');
@@ -132,72 +132,72 @@ export default function PastExams() {
     }
   };
 
-const handleCreateExam = async () => {
-  try {
-    const token = await getAccessToken();
+  const handleCreateExam = async () => {
+    try {
+      const token = await getAccessToken();
 
-    if (!token) {
-      Alert.alert('Error', 'JWT token bulunamadı.');
-      return;
-    }
-
-    const response = await axios.post(
-      'http://192.168.0.27:8080/api/v1/past-exams',
-      {
-        year: parseInt(formData.year, 10),
-        term: (formData.term), // önceki mesajda verdiğimiz normalization fonksiyonu
-        departmentId: parseInt(formData.departmentId, 10),
-        courseCode: formData.courseCode,
-        title: formData.title,
-        fileIds: [],
-        instructorId: 0,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      if (!token) {
+        Alert.alert('Error', 'JWT token bulunamadı.');
+        return;
       }
-    );
 
-    const createdExam = response.data.data;
+      const response = await axios.post(
+        'http://192.168.0.27:8080/api/v1/past-exams',
+        {
+          year: parseInt(formData.year, 10),
+          term: (formData.term), 
+          departmentId: parseInt(formData.departmentId, 10),
+          courseCode: formData.courseCode,
+          title: formData.title,
+          fileIds: [],
+          instructorId: 0,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-    const updatedExams = [...exams, createdExam];
-    setExams(updatedExams);
-    setFilteredExams(updatedExams);
-    setCreateModalVisible(false);
-    resetForm();
+      const createdExam = response.data.data;
 
-    Alert.alert('Success', 'Exam created successfully!');
-  } catch (error: any) {
-    console.error('Create exam error:', error);
-    Alert.alert('Error', 'Sınav oluşturulurken bir hata oluştu.');
-  }
-};
+      const updatedExams = [...exams, createdExam];
+      setExams(updatedExams);
+      setFilteredExams(updatedExams);
+      setCreateModalVisible(false);
+      resetForm();
+
+      Alert.alert('Success', 'Exam created successfully!');
+    } catch (error: any) {
+      console.error('Create exam error:', error);
+      Alert.alert('Error', 'Exam creation failed.');
+    }
+  };
 
   // Handle update exam
   const handleUpdateExam = () => {
     if (!currentExam) return;
-    
+
     // In a real app, this would make an API call
-    const updatedExams = exams.map(exam => 
-      exam.id === currentExam.id 
+    const updatedExams = exams.map(exam =>
+      exam.id === currentExam.id
         ? {
-            ...exam,
-            year: formData.year,
-            term: formData.term,
-            departmentId: formData.departmentId,
-            courseCode: formData.courseCode,
-            title: formData.title
-          }
+          ...exam,
+          year: formData.year,
+          term: formData.term,
+          departmentId: formData.departmentId,
+          courseCode: formData.courseCode,
+          title: formData.title
+        }
         : exam
     );
-    
+
     setExams(updatedExams);
     setFilteredExams(updatedExams);
     setUpdateModalVisible(false);
     resetForm();
-    
+
     Alert.alert('Success', 'Exam updated successfully!');
   };
 
@@ -207,20 +207,20 @@ const handleCreateExam = async () => {
       Alert.alert('Error', 'Please enter a valid Exam ID');
       return;
     }
-    
+
     // In a real app, this would make an API call
     const updatedExams = exams.filter(exam => exam.id !== formData.examId);
-    
+
     if (updatedExams.length === exams.length) {
       Alert.alert('Error', 'Exam not found with the given ID');
       return;
     }
-    
+
     setExams(updatedExams);
     setFilteredExams(updatedExams);
     setDeleteModalVisible(false);
     resetForm();
-    
+
     Alert.alert('Success', 'Exam deleted successfully!');
   };
 
@@ -230,31 +230,31 @@ const handleCreateExam = async () => {
       Alert.alert('Error', 'Please enter a valid Exam ID');
       return;
     }
-    
+
     // In a real app, this would make an API call
     const updatedExams = exams.map(exam => {
       if (exam.id === formData.examId) {
         return {
           ...exam,
           files: [
-            ...exam.files, 
+            ...exam.files,
             { id: Date.now().toString(), name: formData.fileName || 'newfile.pdf' }
           ]
         };
       }
       return exam;
     });
-    
+
     if (JSON.stringify(updatedExams) === JSON.stringify(exams)) {
       Alert.alert('Error', 'Exam not found with the given ID');
       return;
     }
-    
+
     setExams(updatedExams);
     setFilteredExams(updatedExams);
     setAddFileModalVisible(false);
     resetForm();
-    
+
     Alert.alert('Success', 'File added successfully!');
   };
 
@@ -264,7 +264,7 @@ const handleCreateExam = async () => {
       Alert.alert('Error', 'Please enter valid Exam ID and File ID');
       return;
     }
-    
+
     // In a real app, this would make an API call
     let fileFound = false;
     const updatedExams = exams.map(exam => {
@@ -276,22 +276,22 @@ const handleCreateExam = async () => {
           }
           return true;
         });
-        
+
         return { ...exam, files: updatedFiles };
       }
       return exam;
     });
-    
+
     if (!fileFound) {
       Alert.alert('Error', 'Exam or file not found with the given IDs');
       return;
     }
-    
+
     setExams(updatedExams);
     setFilteredExams(updatedExams);
     setDeleteFileModalVisible(false);
     resetForm();
-    
+
     Alert.alert('Success', 'File deleted successfully!');
   };
 
@@ -328,10 +328,10 @@ const handleCreateExam = async () => {
 
   return (
     <>
-      <Stack.Screen options={{ 
+      <Stack.Screen options={{
         title: 'Past Exams',
       }} />
-      
+
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
           {/* Search Bar */}
@@ -344,10 +344,10 @@ const handleCreateExam = async () => {
             />
             <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
           </View>
-          
+
           {/* Management Buttons - Only visible to authorized users */}
           <View style={styles.managementButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.managementButton}
               onPress={() => {
                 resetForm();
@@ -357,8 +357,8 @@ const handleCreateExam = async () => {
               <Ionicons name="add-circle" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Create Exam</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.managementButton}
               onPress={() => {
                 resetForm();
@@ -368,8 +368,8 @@ const handleCreateExam = async () => {
               <Ionicons name="trash" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Delete Exam</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.managementButton}
               onPress={() => {
                 resetForm();
@@ -379,8 +379,8 @@ const handleCreateExam = async () => {
               <Ionicons name="document-attach" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Add File</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.managementButton}
               onPress={() => {
                 resetForm();
@@ -391,7 +391,7 @@ const handleCreateExam = async () => {
               <Text style={styles.managementButtonText}>Delete File</Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Exams List */}
           {filteredExams.map(exam => (
             <View key={exam.id} style={styles.card}>
@@ -402,31 +402,31 @@ const handleCreateExam = async () => {
                     {exam.courseCode} | {exam.departmentId} | {exam.term} {exam.year}
                   </Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.editButton}
                   onPress={() => initUpdateForm(exam)}
                 >
                   <Ionicons name="pencil" size={20} color="#2196F3" />
                 </TouchableOpacity>
               </View>
-              
+
               {Array.isArray(exam.files) && exam.files.length > 0 && (
-  <View style={styles.filesContainer}>
-    <Text style={styles.filesHeader}>Exam Files:</Text>
-    {exam.files.map(file => (
-      <View key={file.id} style={styles.fileItem}>
-        <Ionicons name="document" size={16} color="#2196F3" />
-        <Text style={styles.fileName}>{file.name}</Text>
-        <Text style={styles.fileId}>ID: {file.id}</Text>
-      </View>
-    ))}
-  </View>
-)}
+                <View style={styles.filesContainer}>
+                  <Text style={styles.filesHeader}>Exam Files:</Text>
+                  {exam.files.map(file => (
+                    <View key={file.id} style={styles.fileItem}>
+                      <Ionicons name="document" size={16} color="#2196F3" />
+                      <Text style={styles.fileName}>{file.name}</Text>
+                      <Text style={styles.fileId}>ID: {file.id}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <Text style={styles.examId}>Exam ID: {exam.id}</Text>
             </View>
           ))}
-          
+
           {filteredExams.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="document-text-outline" size={48} color="#ccc" />
@@ -435,7 +435,7 @@ const handleCreateExam = async () => {
           )}
         </View>
       </ScrollView>
-      
+
       {/* Create Exam Modal */}
       <Modal
         visible={isCreateModalVisible}
@@ -448,50 +448,50 @@ const handleCreateExam = async () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Create New Past Exam</Text>
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Year (e.g. 2023)"
                     value={formData.year}
-                    onChangeText={(text) => setFormData({...formData, year: text})}
+                    onChangeText={(text) => setFormData({ ...formData, year: text })}
                     keyboardType="numeric"
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Term (Fall, Spring, Summer)"
                     value={formData.term}
-                    onChangeText={(text) => setFormData({...formData, term: text})}
+                    onChangeText={(text) => setFormData({ ...formData, term: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Department ID"
                     value={formData.departmentId}
-                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Course Code"
                     value={formData.courseCode}
-                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
+                    onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Title (Course Name)"
                     value={formData.title}
-                    onChangeText={(text) => setFormData({...formData, title: text})}
+                    onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.uploadFileButton}
                     onPress={() => {
                       Alert.alert('Upload', 'Exam file upload will be implemented');
@@ -500,9 +500,9 @@ const handleCreateExam = async () => {
                     <Ionicons name="document-attach" size={20} color="#fff" />
                     <Text style={styles.uploadFileButtonText}>Upload Exam File</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setCreateModalVisible(false);
@@ -511,8 +511,8 @@ const handleCreateExam = async () => {
                     >
                       <Text style={styles.modalButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.submitButton]}
                       onPress={handleCreateExam}
                     >
@@ -525,7 +525,7 @@ const handleCreateExam = async () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      
+
       {/* Update Exam Modal */}
       <Modal
         visible={isUpdateModalVisible}
@@ -538,51 +538,51 @@ const handleCreateExam = async () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Update Past Exam</Text>
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Year (e.g. 2023)"
                     value={formData.year}
-                    onChangeText={(text) => setFormData({...formData, year: text})}
+                    onChangeText={(text) => setFormData({ ...formData, year: text })}
                     keyboardType="numeric"
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Term (Fall, Spring, Summer)"
                     value={formData.term}
-                    onChangeText={(text) => setFormData({...formData, term: text})}
+                    onChangeText={(text) => setFormData({ ...formData, term: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Department ID"
                     value={formData.departmentId}
-                    onChangeText={(text) => setFormData({...formData, departmentId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Course Code"
                     value={formData.courseCode}
-                    onChangeText={(text) => setFormData({...formData, courseCode: text})}
+                    onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Title (Course Name)"
                     value={formData.title}
-                    onChangeText={(text) => setFormData({...formData, title: text})}
+                    onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
-                  
+
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setUpdateModalVisible(false);
@@ -591,8 +591,8 @@ const handleCreateExam = async () => {
                     >
                       <Text style={styles.modalButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.submitButton]}
                       onPress={handleUpdateExam}
                     >
@@ -605,7 +605,7 @@ const handleCreateExam = async () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      
+
       {/* Delete Exam Modal */}
       <Modal
         visible={isDeleteModalVisible}
@@ -618,22 +618,22 @@ const handleCreateExam = async () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Delete Past Exam</Text>
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Exam ID"
                     value={formData.examId}
-                    onChangeText={(text) => setFormData({...formData, examId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, examId: text })}
                   />
-                  
+
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setDeleteModalVisible(false);
@@ -642,8 +642,8 @@ const handleCreateExam = async () => {
                     >
                       <Text style={styles.modalButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.deleteButton]}
                       onPress={handleDeleteExam}
                     >
@@ -656,7 +656,7 @@ const handleCreateExam = async () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      
+
       {/* Add File Modal */}
       <Modal
         visible={isAddFileModalVisible}
@@ -669,29 +669,29 @@ const handleCreateExam = async () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Add File to Exam</Text>
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Exam ID"
                     value={formData.examId}
-                    onChangeText={(text) => setFormData({...formData, examId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, examId: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="File Name (e.g. midterm2023.pdf)"
                     value={formData.fileName}
-                    onChangeText={(text) => setFormData({...formData, fileName: text})}
+                    onChangeText={(text) => setFormData({ ...formData, fileName: text })}
                   />
-                  
+
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setAddFileModalVisible(false);
@@ -700,8 +700,8 @@ const handleCreateExam = async () => {
                     >
                       <Text style={styles.modalButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.submitButton]}
                       onPress={handleAddFile}
                     >
@@ -714,7 +714,7 @@ const handleCreateExam = async () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      
+
       {/* Delete File Modal */}
       <Modal
         visible={isDeleteFileModalVisible}
@@ -727,29 +727,29 @@ const handleCreateExam = async () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Delete File from Exam</Text>
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="Exam ID"
                     value={formData.examId}
-                    onChangeText={(text) => setFormData({...formData, examId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, examId: text })}
                   />
-                  
+
                   <TextInput
                     style={styles.input}
                     placeholder="File ID"
                     value={formData.fileId}
-                    onChangeText={(text) => setFormData({...formData, fileId: text})}
+                    onChangeText={(text) => setFormData({ ...formData, fileId: text })}
                   />
-                  
+
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setDeleteFileModalVisible(false);
@@ -758,8 +758,8 @@ const handleCreateExam = async () => {
                     >
                       <Text style={styles.modalButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.modalButton, styles.deleteButton]}
                       onPress={handleDeleteFile}
                     >
