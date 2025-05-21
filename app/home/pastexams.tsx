@@ -30,6 +30,9 @@ interface PastExam {
   courseCode: string;
   title: string;
   files: ExamFile[];
+  fileIds: string[];
+  instructorId: number;
+  content: string;
 }
 
 interface FormData {
@@ -175,31 +178,58 @@ export default function PastExams() {
     }
   };
 
-  // Handle update exam
-  const handleUpdateExam = () => {
-    if (!currentExam) return;
-
-    // In a real app, this would make an API call
-    const updatedExams = exams.map(exam =>
-      exam.id === currentExam.id
-        ? {
-          ...exam,
-          year: formData.year,
+  const handleUpdateExam = async () => {
+    if (!currentExam) {
+      Alert.alert('Error', 'No exam selected for update.');
+      return;
+    }
+  
+    try {
+      const token = await getAccessToken();
+  
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return;
+      }
+  
+      const response = await axios.put(
+        `http://192.168.0.27:8080/api/v1/past-exams/${currentExam.id}`,
+        {
+          year: parseInt(formData.year, 10),
           term: formData.term,
-          departmentId: formData.departmentId,
+          departmentId: parseInt(formData.departmentId, 10),
           courseCode: formData.courseCode,
-          title: formData.title
+          title: formData.title,
+          fileIds: currentExam.fileIds || [],
+          instructorId: currentExam.instructorId || 0,
+          content: currentExam.content || "", // Send empty string if not editable
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-        : exam
-    );
-
-    setExams(updatedExams);
-    setFilteredExams(updatedExams);
-    setUpdateModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'Exam updated successfully!');
+      );
+  
+      const updatedExam = response.data.data;
+  
+      const updatedExams = exams.map((exam) =>
+        exam.id === updatedExam.id ? updatedExam : exam
+      );
+  
+      setExams(updatedExams);
+      setFilteredExams(updatedExams);
+      setUpdateModalVisible(false);
+      resetForm();
+  
+      Alert.alert('Success', 'Exam updated successfully!');
+    } catch (error: any) {
+      console.error('Update exam error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to update exam.');
+    }
   };
+  
 
   // Handle delete exam
   const handleDeleteExam = () => {
