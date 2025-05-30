@@ -440,7 +440,7 @@ export default function ClassNotes() {
       };
 
       const response = await axios.post(
-        'http://192.168.0.27:8080/api/v1/class-notes',
+      'http://192.168.0.27:8080/api/v1/class-notes',
         noteData,
         {
           headers: {
