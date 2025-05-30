@@ -691,7 +691,28 @@ export default function ClassNotes() {
                     {note.courseCode} | Dept ID: {note.departmentId}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => initUpdateForm(note)}
+                >
+                  <Ionicons name="pencil" size={20} color="#2196F3" />
+                </TouchableOpacity>
               </View>
+
+              {Array.isArray(note.files) && note.files.length > 0 && (
+                <View style={styles.filesContainer}>
+                  <Text style={styles.filesHeader}>Note Files:</Text>
+                  {note.files.map((file: NoteFile) => (
+                    <View key={file.id} style={styles.fileItem}>
+                      <Ionicons name="document" size={16} color="#2196F3" />
+                      <Text style={styles.fileName}>{file.name}</Text>
+                      <Text style={styles.fileId}>ID: {file.id}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <Text style={styles.noteId}>Note ID: {note.id}</Text>
             </View>
           ))}
         </View>
