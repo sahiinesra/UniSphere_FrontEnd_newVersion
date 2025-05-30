@@ -491,27 +491,39 @@ export default function ClassNotes() {
   };
 
   // Handle delete note
-  const handleDeleteNote = () => {
-    if (!formData.noteId) {
-      Alert.alert('Error', 'Please enter a valid Note ID');
-      return;
+  const handleDeleteNote = async (noteId: number) => {
+    try {
+      const token = await getAccessToken();
+  
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return;
+      }
+  
+      const response = await axios.delete(
+        `http://192.168.0.27:8080/api/v1/class-notes/${noteId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      const message = response.data?.data?.message;
+      console.log('Note deleted successfully:', message);
+  
+      const updatedNotes = (notes ?? []).filter((note) => note.id !== noteId.toString());
+      setNotes(updatedNotes);
+      setFilteredNotes(updatedNotes);
+  
+      Alert.alert('Success', 'Note deleted successfully!');
+    } catch (error: any) {
+      console.error('Delete note error:', error);
+      Alert.alert('Error', 'Failed to delete note.');
     }
-
-    // In a real app, this would make an API call
-    const updatedNotes = notes.filter(note => note.id !== formData.noteId);
-
-    if (updatedNotes.length === notes.length) {
-      Alert.alert('Error', 'Note not found with the given ID');
-      return;
-    }
-
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setDeleteModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'Note deleted successfully!');
   };
+  
 
   // Handle add file to note
   const handleAddFile = () => {
@@ -921,7 +933,7 @@ export default function ClassNotes() {
 
                     <TouchableOpacity
                       style={[styles.modalButton, styles.deleteButton]}
-                      onPress={handleDeleteNote}
+                      onPress={() => handleDeleteNote(parseInt(formData.noteId))}
                     >
                       <Text style={styles.modalButtonText}>Delete</Text>
                     </TouchableOpacity>
