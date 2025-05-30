@@ -513,10 +513,14 @@ export default function ClassNotes() {
       const message = response.data?.data?.message;
       console.log('Note deleted successfully:', message);
   
-      const updatedNotes = (notes ?? []).filter((note) => note.id !== noteId.toString());
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
-  
+      // Fetch updated notes list
+      const updatedClassNotes = await fetchClassNotes();
+      setClassNotes(updatedClassNotes);
+      
+      // Close the modal and reset form
+      setDeleteModalVisible(false);
+      resetForm();
+
       Alert.alert('Success', 'Note deleted successfully!');
     } catch (error: any) {
       console.error('Delete note error:', error);
