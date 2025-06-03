@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Define colors to match the application theme
 const colors = {
@@ -8,104 +8,226 @@ const colors = {
   text: '#000000',       // Text is Black for contrast
   border: '#000000',     // Borders are Black
   cardBackground: '#FFFFFF', // Card interiors are White
+  primary: '#4CAF50',
+  danger: '#f44336',
 };
 
+export type Community = {
+  id: string;
+  name: string;
+  category: string;
+  memberCount: number;
+  abbreviation: string;
+  logoUri?: string;
+};
+
+// Initial mock data for communities
+const initialMockCommunities: Community[] = [
+  {
+    id: '1',
+    name: 'Computer Science Society',
+    category: 'Academic Clubs',
+    memberCount: 150,
+    abbreviation: 'CSS',
+  },
+  {
+    id: '2',
+    name: 'Photography Club',
+    category: 'Arts & Culture',
+    memberCount: 75,
+    abbreviation: 'PC',
+  },
+  // Add more mock communities as needed
+];
+
 export default function Communities() {
+  const router = useRouter();
+  const { newCommunity } = useLocalSearchParams();
+  const [showMyCommunities, setShowMyCommunities] = useState(false);
+  const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
+  const [communities, setCommunities] = useState<Community[]>(initialMockCommunities);
+
+  useEffect(() => {
+    if (newCommunity) {
+      try {
+        const parsedCommunity = JSON.parse(newCommunity as string) as Community;
+        setCommunities(prev => [...prev, parsedCommunity]);
+      } catch (error) {
+        console.error('Error parsing new community data:', error);
+      }
+    }
+  }, [newCommunity]);
+
+  const handleCreateCommunity = () => {
+    router.push('/home/community/create');
+  };
+
+  const handleCommunityPress = (communityId: string) => {
+    router.push(`/home/community/${communityId}`);
+  };
+
+  const handleUpdateCommunity = (communityId: string) => {
+    // TODO: Implement update community functionality
+  };
+
+  const handleDeleteCommunity = (communityId: string) => {
+    setCommunities(prev => prev.filter(c => c.id !== communityId));
+    // TODO: Implement delete community functionality with backend
+  };
+
+  const displayedCommunities = showMyCommunities
+    ? communities.filter(c => joinedCommunities.includes(c.id))
+    : communities;
+
   return (
     <>
       <Stack.Screen options={{ 
         title: 'Communities',
       }} />
       
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Academic Clubs</Text>
-            <Text style={styles.sectionContent}>
-              • Computer Science Society{'\n'}
-              • Engineers Without Borders{'\n'}
-              • Math Club{'\n'}
-              • Business Association
-            </Text>
-          </View>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={[styles.tabButton, !showMyCommunities && styles.activeTab]}
+            onPress={() => setShowMyCommunities(false)}
+          >
+            <Text style={styles.tabButtonText}>All Communities</Text>
+          </TouchableOpacity>
           
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Arts & Culture</Text>
-            <Text style={styles.sectionContent}>
-              • Photography Club{'\n'}
-              • Music Society{'\n'}
-              • Drama Club{'\n'}
-              • Literature Association
-            </Text>
-          </View>
-          
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Sports & Recreation</Text>
-            <Text style={styles.sectionContent}>
-              • Basketball Team{'\n'}
-              • Soccer Club{'\n'}
-              • Swimming Team{'\n'}
-              • Chess Club
-            </Text>
-          </View>
-          
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Social Groups</Text>
-            <Text style={styles.sectionContent}>
-              • International Students Association{'\n'}
-              • Volunteer Society{'\n'}
-              • Debate Club{'\n'}
-              • Environmental Awareness Group
-            </Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.tabButton, showMyCommunities && styles.activeTab]}
+            onPress={() => setShowMyCommunities(true)}
+          >
+            <Text style={styles.tabButtonText}>My Communities</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+
+        <TouchableOpacity 
+          style={styles.createButton}
+          onPress={handleCreateCommunity}
+        >
+          <Text style={styles.buttonText}>Create New Community</Text>
+        </TouchableOpacity>
+
+        <ScrollView style={styles.scrollView}>
+          {displayedCommunities.map((community) => (
+            <View key={community.id} style={styles.card}>
+              <TouchableOpacity 
+                onPress={() => handleCommunityPress(community.id)}
+                style={styles.communityHeader}
+              >
+                <Text style={styles.communityName}>{community.name}</Text>
+                <Text style={styles.memberCount}>
+                  Members: {community.memberCount}
+                </Text>
+              </TouchableOpacity>
+              
+              <View style={styles.cardActions}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.updateButton]}
+                  onPress={() => handleUpdateCommunity(community.id)}
+                >
+                  <Text style={styles.buttonText}>Update</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.deleteButton]}
+                  onPress={() => handleDeleteCommunity(community.id)}
+                >
+                  <Text style={styles.buttonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     flex: 1,
-    padding: 20,
-    paddingBottom: 100, // Add extra padding for bottom tabs
     backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 32,
+  header: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.border,
+  },
+  tabButton: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  activeTab: {
+    backgroundColor: colors.background,
+  },
+  tabButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
     color: colors.text,
-    marginBottom: 20,
+  },
+  createButton: {
+    margin: 10,
+    padding: 15,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.border,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 10,
   },
   card: {
     backgroundColor: colors.cardBackground,
     borderWidth: 3,
     borderColor: colors.border,
     padding: 15,
-    marginBottom: 25,
-    shadowColor: colors.border,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    marginBottom: 15,
+    borderRadius: 8,
   },
-  sectionTitle: {
-    fontSize: 24,
+  communityHeader: {
+    marginBottom: 10,
+  },
+  communityName: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 10,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.border,
-    paddingBottom: 5,
   },
-  sectionContent: {
-    fontSize: 16,
+  memberCount: {
+    fontSize: 14,
     color: colors.text,
-    lineHeight: 24,
+    marginTop: 5,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  updateButton: {
+    backgroundColor: colors.primary,
+  },
+  deleteButton: {
+    backgroundColor: colors.danger,
+  },
+  buttonText: {
+    color: colors.cardBackground,
+    fontWeight: 'bold',
   },
 }); 
