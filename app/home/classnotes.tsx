@@ -51,6 +51,7 @@ interface FormData {
   noteId: string;
   fileId: string;
   fileName: string;
+  files: NoteFile[];
 }
 
 // Mock data for class notes
@@ -349,7 +350,8 @@ export default function ClassNotes() {
     departmentId: '',
     noteId: '',
     fileId: '',
-    fileName: ''
+    fileName: '',
+    files: []
   });
 
   const getAccessToken = async () => {
@@ -383,7 +385,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.get(
-        'http://192.168.0.27:8080/api/v1/class-notes',
+        'http://192.168.182.112:8080/api/v1/class-notes',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -440,7 +442,7 @@ export default function ClassNotes() {
       };
 
       const response = await axios.post(
-      'http://192.168.0.27:8080/api/v1/class-notes',
+      'http://192.168.182.112:8080/api/v1/class-notes',
         noteData,
         {
           headers: {
@@ -466,30 +468,54 @@ export default function ClassNotes() {
   };
 
   // Handle update note
-  const handleUpdateNote = () => {
-    if (!currentNote) return;
-
-    // In a real app, this would make an API call
-    const updatedNotes = notes.map(note =>
-      note.id === currentNote.id
-        ? {
-          ...note,
-          courseCode: formData.courseCode,
+  const handleUpdateClassNote = async () => {
+    if (!formData.noteId) {
+      Alert.alert('Error', 'Note ID is missing.');
+      return;
+    }
+  
+    try {
+      const token = await getAccessToken();
+  
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return;
+      }
+  
+      const response = await axios.put(
+        `http://192.168.182.112:8080/api/v1/class-notes/${formData.noteId}`,
+        {
           title: formData.title,
-          description: formData.description,
-          departmentId: formData.departmentId
+          content: formData.content || "No content provided",
+          courseCode: formData.courseCode,
+          description: formData.description || "",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-        : note
-    );
-
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setUpdateModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'Note updated successfully!');
+      );
+  
+      const updatedNote = response.data.data;
+  
+      const updatedNotes = notes.map((note) =>
+        note.id === updatedNote.id ? updatedNote : note
+      );
+  
+      setNotes(updatedNotes);
+      setFilteredNotes(updatedNotes);
+      setUpdateModalVisible(false);
+      resetForm();
+  
+      Alert.alert('Success', 'Class note updated successfully!');
+    } catch (error: any) {
+      console.error('Update class note error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to update class note.');
+    }
   };
-
+  
   // Handle delete note
   const handleDeleteNote = async (noteId: number) => {
     try {
@@ -501,7 +527,7 @@ export default function ClassNotes() {
       }
   
       const response = await axios.delete(
-        `http://192.168.0.27:8080/api/v1/class-notes/${noteId}`,
+        `http://192.168.182.112:8080/api/v1/class-notes/${noteId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -611,7 +637,8 @@ export default function ClassNotes() {
       content: '',
       noteId: note.id,
       fileId: '',
-      fileName: ''
+      fileName: '',
+      files: note.files
     });
     setUpdateModalVisible(true);
   };
@@ -626,7 +653,8 @@ export default function ClassNotes() {
       departmentId: '',
       noteId: '',
       fileId: '',
-      fileName: ''
+      fileName: '',
+      files: []
     });
     setCurrentNote(null);
   };
@@ -886,7 +914,7 @@ export default function ClassNotes() {
 
                     <TouchableOpacity
                       style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleUpdateNote}
+                      onPress={handleUpdateClassNote}
                     >
                       <Text style={styles.modalButtonText}>Update</Text>
                     </TouchableOpacity>

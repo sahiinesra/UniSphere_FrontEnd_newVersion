@@ -287,7 +287,7 @@ const Profile = () => {
           return;
         }
 
-        const response = await axios.get('http://192.168.0.27:8080/api/v1/users/profile', {
+        const response = await axios.get('http://192.168.182.112:8080/api/v1/users/profile', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -366,7 +366,7 @@ const Profile = () => {
       };
 
       const response = await axios.put(
-        'http://192.168.0.27:8080/api/v1/users/profile',
+        'http://192.168.182.112:8080/api/v1/users/profile',
         payload,
         {
           headers: {

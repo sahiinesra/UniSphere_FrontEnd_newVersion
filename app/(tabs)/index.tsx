@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
-  Image,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -20,14 +19,6 @@ const colors = {
   primaryButtonBackground: '#1E90FF', // Buttons are now Blue
   primaryButtonText: '#FFFFFF', // Button text is now White
 };
-
-// Interface for User Profile Data (to be fetched from backend)
-interface UserProfile {
-  name: string;
-  faculty: string;
-  email: string;
-  imageUrl: string;
-}
 
 // Custom Button Component (Neo-Brutalism style - Blue)
 interface NeoButtonProps {
@@ -49,47 +40,6 @@ const NeoButton: React.FC<NeoButtonProps> = ({ title, onPress }) => {
 
 export default function Index() {
   const router = useRouter();
-  
-  // State for holding profile data
-  const [profile, setProfile] = useState<UserProfile>({
-    // Initial placeholder data - will be replaced by backend data
-    name: 'Loading...',
-    faculty: 'Loading...',
-    email: 'Loading...',
-    imageUrl: 'https://via.placeholder.com/100/cccccc/000000?text=...', // Placeholder image
-  });
-
-  // useEffect to fetch data when the component mounts
-  useEffect(() => {
-    // --- Placeholder for Backend Fetch ---
-    // In a real application, you would fetch data here, e.g.:
-    // fetch('/api/user/profile')
-    //   .then(response => response.json())
-    //   .then((data: UserProfile) => setProfile(data))
-    //   .catch(error => {
-    //     console.error("Error fetching profile:", error);
-    //     // Handle error state if needed
-    //     setProfile({
-    //         name: 'Error Loading',
-    //         faculty: 'Could not fetch data',
-    //         email: '',
-    //         imageUrl: 'https://via.placeholder.com/100/ff0000/ffffff?text=Error', // Error placeholder
-    //     });
-    //   });
-
-    // Simulating a network request delay with setTimeout
-    const timer = setTimeout(() => {
-      setProfile({
-        name: 'Esra Sahin', // Data loaded from "backend"
-        faculty: 'Faculty of Engineering and Architecture', // Data loaded
-        email: 's200101@ankarabilim.edu.tr', // Data loaded
-        imageUrl: '', // Changed to a specific image
-      });
-    }, 1500); // Simulate 1.5 second load time
-
-    return () => clearTimeout(timer); // Cleanup timer on component unmount
-    // --- End Placeholder ---
-  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -103,25 +53,6 @@ export default function Index() {
 
           {/* Brutalist Separator Line */}
           <View style={styles.separatorLine}></View>
-
-          {/* Profile Section - Uses state data */}
-          {/* Card background is white */}
-          <View style={styles.card}>
-            <View style={styles.profileSection}>
-              <View style={styles.profileImageContainer}>
-                <Image
-                  source={{ uri: profile.imageUrl }} // Use image URL from state
-                  style={styles.profileImage}
-                  resizeMode="cover" // Ensure image covers the area
-                />
-              </View>
-              <View style={styles.profileDetails}>
-                <Text style={styles.profileName}>{profile.name}</Text>
-                <Text style={styles.profileInfo}>{profile.faculty}</Text>
-                <Text style={styles.profileInfo}>{profile.email}</Text>
-              </View>
-            </View>
-          </View>
 
           {/* About Ankara Science University */}
           {/* Card background is white */}
@@ -223,46 +154,11 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 0,
   },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileImageContainer: {
-    width: 80,
-    height: 80,
-    borderWidth: 3,
-    borderColor: colors.border,
-    marginRight: 15,
-    padding: 0,
-    backgroundColor: '#ccc',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  profileDetails: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  profileInfo: {
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 2,
-  },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 10,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.border,
-    paddingBottom: 5,
   },
   sectionContent: {
     fontSize: 16,
@@ -270,28 +166,24 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   buttonContainer: {
-    marginTop: 30,
     gap: 15,
   },
-  // Custom Button Styles - Blue Background, White Text
   buttonBase: {
     backgroundColor: colors.primaryButtonBackground,
-    paddingVertical: 15,
+    padding: 15,
     borderRadius: 0,
     borderWidth: 3,
     borderColor: colors.border,
-    alignItems: 'center',
     shadowColor: colors.border,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 4,
+    elevation: 0,
   },
   buttonText: {
     color: colors.primaryButtonText,
     fontSize: 18,
     fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    textAlign: 'center',
   },
 });

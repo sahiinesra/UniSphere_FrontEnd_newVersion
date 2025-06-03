@@ -57,7 +57,7 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://192.168.0.27:8080/api/v1/auth/login', {
+    const response = await axios.post('http://192.168.182.112:8080/api/v1/auth/login', {
       email,
       password,
     });
