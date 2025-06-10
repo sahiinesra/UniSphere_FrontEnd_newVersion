@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +18,26 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+
+// Axios instance configuration
+const api = axios.create({
+  baseURL: 'http://192.168.0.24:8080/api/v1',
+  timeout: 10000, // 10 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Retry logic
+const retryRequest = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries === 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryRequest(fn, retries - 1, delay * 2);
+  }
+};
 
 // Neo-Brutalism Color Palette (Matching index.tsx)
 const colors = {
@@ -63,6 +84,7 @@ interface PasswordModalContentProps {
   handleChangePassword: () => void;
   onClose: () => void;
 }
+
 const getAccessToken = async () => {
   const token = await SecureStore.getItemAsync('accessToken');
   return token;
@@ -268,9 +290,6 @@ const Profile = () => {
   // Email for password reset
   const [resetEmail, setResetEmail] = useState('');
 
-
-  // ...
-
   const [userData, setUserData] = useState<UserData>({
     firstName: '',
     lastName: '',
@@ -287,12 +306,13 @@ const Profile = () => {
           return;
         }
 
-        const response = await axios.get('http://192.168.182.112:8080/api/v1/users/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await retryRequest(() => 
+          api.get('/users/profile', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+        );
 
         const data = response.data.data;
 
@@ -304,13 +324,30 @@ const Profile = () => {
         });
 
       } catch (error: any) {
-        console.error('Profil alınamadı:', error?.response?.data || error.message);
+        console.error('Profil alınamadı:', error);
+        
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED') {
+            Alert.alert(
+              'Connection Timeout',
+              'The server is taking too long to respond. Please check your internet connection and try again.'
+            );
+          } else if (!error.response) {
+            Alert.alert(
+              'Network Error',
+              'Unable to connect to the server. Please check your internet connection.'
+            );
+          } else {
+            Alert.alert('Error', error.response?.data?.message || 'Failed to load profile');
+          }
+        } else {
+          Alert.alert('Error', 'An unexpected error occurred while loading profile');
+        }
       }
     };
 
     fetchUserProfile();
   }, []);
-
 
   const [firstName, setFirstName] = useState(userData.firstName);
   const [lastName, setLastName] = useState(userData.lastName);
@@ -365,18 +402,13 @@ const Profile = () => {
         password: "", // Backend zorunluysa boş gönder
       };
 
-      const response = await axios.put(
-        'http://192.168.182.112:8080/api/v1/users/profile',
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await api.put('/users/profile', payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      // Backend doğru döndüyse local state’i güncelle
+      // Backend doğru döndüyse local state'i güncelle
       setUserData((prev) => ({
         ...prev,
         firstName,
@@ -391,8 +423,6 @@ const Profile = () => {
       alert('Profil güncellenirken hata oluştu.');
     }
   };
-
-
 
   const handleSendVerificationCode = () => {
     // Implementation for sending verification code

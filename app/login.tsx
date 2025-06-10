@@ -17,6 +17,26 @@ import {
   View
 } from 'react-native';
 
+// Axios instance configuration
+const api = axios.create({
+  baseURL: 'http://192.168.0.24:8080/api/v1',
+  timeout: 10000, // 10 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Retry logic
+const retryRequest = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries === 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryRequest(fn, retries - 1, delay * 2);
+  }
+};
+
 // Neo-Brutalism Color Palette (Matching app design)
 const colors = {
   background: '#FFD700', // Gold yellow (matching app pages)
@@ -57,10 +77,12 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://192.168.182.112:8080/api/v1/auth/login', {
-      email,
-      password,
-    });
+    const response = await retryRequest(() => 
+      api.post('/auth/login', {
+        email,
+        password,
+      })
+    );
 
     const { accessToken, refreshToken } = response.data.data;
     await saveTokens(accessToken, refreshToken);
@@ -70,7 +92,19 @@ const handleLogin = async () => {
     console.error('Login error:', error);
 
     if (axios.isAxiosError(error)) {
-      Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
+      if (error.code === 'ECONNABORTED') {
+        Alert.alert(
+          'Connection Timeout',
+          'The server is taking too long to respond. Please check your internet connection and try again.'
+        );
+      } else if (!error.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to connect to the server. Please check your internet connection.'
+        );
+      } else {
+        Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
+      }
     } else {
       Alert.alert('Error', 'An unexpected error occurred');
     }

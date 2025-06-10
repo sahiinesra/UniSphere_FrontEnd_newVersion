@@ -94,7 +94,7 @@ const CommunityDetails = () => {
           <Text style={styles.title}>Community Name</Text>
           <Text style={styles.description}>
             This is the community description. It provides information about the
-            community's purpose, activities, and other relevant details.
+            community&apos;s purpose, activities, and other relevant details.
           </Text>
         </View>
 

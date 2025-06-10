@@ -385,7 +385,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.get(
-        'http://192.168.182.112:8080/api/v1/class-notes',
+        'http://192.168.0.24:8080/api/v1/class-notes',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -442,7 +442,7 @@ export default function ClassNotes() {
       };
 
       const response = await axios.post(
-      'http://192.168.182.112:8080/api/v1/class-notes',
+      'http://192.168.0.24:8080/api/v1/class-notes',
         noteData,
         {
           headers: {
@@ -483,7 +483,7 @@ export default function ClassNotes() {
       }
   
       const response = await axios.put(
-        `http://192.168.182.112:8080/api/v1/class-notes/${formData.noteId}`,
+        `http://192.168.0.24:8080/api/v1/class-notes/${formData.noteId}`,
         {
           title: formData.title,
           content: formData.content || "No content provided",
@@ -527,7 +527,7 @@ export default function ClassNotes() {
       }
   
       const response = await axios.delete(
-        `http://192.168.182.112:8080/api/v1/class-notes/${noteId}`,
+        `http://192.168.0.24:8080/api/v1/class-notes/${noteId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
