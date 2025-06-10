@@ -42,8 +42,6 @@ interface FormData {
   courseCode: string;
   title: string;
   examId: string;
-  fileId: string;
-  fileName: string;
 }
 
 
@@ -56,8 +54,6 @@ export default function PastExams() {
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [isAddFileModalVisible, setAddFileModalVisible] = useState(false);
-  const [isDeleteFileModalVisible, setDeleteFileModalVisible] = useState(false);
 
   // Form states
   const [currentExam, setCurrentExam] = useState<PastExam | null>(null);
@@ -67,9 +63,7 @@ export default function PastExams() {
     departmentId: '',
     courseCode: '',
     title: '',
-    examId: '',
-    fileId: '',
-    fileName: ''
+    examId: ''
   });
 
   useEffect(() => {
@@ -266,77 +260,6 @@ export default function PastExams() {
   };
   
 
-  // Handle add file to exam
-  const handleAddFile = () => {
-    if (!formData.examId) {
-      Alert.alert('Error', 'Please enter a valid Exam ID');
-      return;
-    }
-
-    // In a real app, this would make an API call
-    const updatedExams = exams.map(exam => {
-      if (exam.id === formData.examId) {
-        return {
-          ...exam,
-          files: [
-            ...exam.files,
-            { id: Date.now().toString(), name: formData.fileName || 'newfile.pdf' }
-          ]
-        };
-      }
-      return exam;
-    });
-
-    if (JSON.stringify(updatedExams) === JSON.stringify(exams)) {
-      Alert.alert('Error', 'Exam not found with the given ID');
-      return;
-    }
-
-    setExams(updatedExams);
-    setFilteredExams(updatedExams);
-    setAddFileModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'File added successfully!');
-  };
-
-  // Handle delete file from exam
-  const handleDeleteFile = () => {
-    if (!formData.examId || !formData.fileId) {
-      Alert.alert('Error', 'Please enter valid Exam ID and File ID');
-      return;
-    }
-
-    // In a real app, this would make an API call
-    let fileFound = false;
-    const updatedExams = exams.map(exam => {
-      if (exam.id === formData.examId) {
-        const updatedFiles = exam.files.filter(file => {
-          if (file.id === formData.fileId) {
-            fileFound = true;
-            return false;
-          }
-          return true;
-        });
-
-        return { ...exam, files: updatedFiles };
-      }
-      return exam;
-    });
-
-    if (!fileFound) {
-      Alert.alert('Error', 'Exam or file not found with the given IDs');
-      return;
-    }
-
-    setExams(updatedExams);
-    setFilteredExams(updatedExams);
-    setDeleteFileModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'File deleted successfully!');
-  };
-
   // Initialize update form with current exam data
   const initUpdateForm = (exam: PastExam) => {
     setCurrentExam(exam);
@@ -346,9 +269,7 @@ export default function PastExams() {
       departmentId: exam.departmentId,
       courseCode: exam.courseCode,
       title: exam.title,
-      examId: exam.id,
-      fileId: '',
-      fileName: ''
+      examId: exam.id
     });
     setUpdateModalVisible(true);
   };
@@ -361,9 +282,7 @@ export default function PastExams() {
       departmentId: '',
       courseCode: '',
       title: '',
-      examId: '',
-      fileId: '',
-      fileName: ''
+      examId: ''
     });
     setCurrentExam(null);
   };
@@ -397,7 +316,7 @@ export default function PastExams() {
               }}
             >
               <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Create Exam</Text>
+              <Text style={styles.managementButtonText}>Create New</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -409,28 +328,6 @@ export default function PastExams() {
             >
               <Ionicons name="trash" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Delete Exam</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setAddFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-attach" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Add File</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-text" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete File</Text>
             </TouchableOpacity>
           </View>
 
@@ -701,122 +598,6 @@ export default function PastExams() {
                       onPress={() => handleDeleteExam(formData.examId)}
                     >
                       <Text style={styles.modalButtonText}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Add File Modal */}
-      <Modal
-        visible={isAddFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Add File to Exam</Text>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Exam ID"
-                    value={formData.examId}
-                    onChangeText={(text) => setFormData({ ...formData, examId: text })}
-                  />
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File Name (e.g. midterm2023.pdf)"
-                    value={formData.fileName}
-                    onChangeText={(text) => setFormData({ ...formData, fileName: text })}
-                  />
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setAddFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleAddFile}
-                    >
-                      <Text style={styles.modalButtonText}>Add File</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Delete File Modal */}
-      <Modal
-        visible={isDeleteFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Delete File from Exam</Text>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Exam ID"
-                    value={formData.examId}
-                    onChangeText={(text) => setFormData({ ...formData, examId: text })}
-                  />
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File ID"
-                    value={formData.fileId}
-                    onChangeText={(text) => setFormData({ ...formData, fileId: text })}
-                  />
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setDeleteFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.deleteButton]}
-                      onPress={handleDeleteFile}
-                    >
-                      <Text style={styles.modalButtonText}>Delete File</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

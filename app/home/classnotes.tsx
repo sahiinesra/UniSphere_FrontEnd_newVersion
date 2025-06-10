@@ -49,9 +49,6 @@ interface FormData {
   content: string;
   departmentId: string;
   noteId: string;
-  fileId: string;
-  fileName: string;
-  files: NoteFile[];
 }
 
 // Mock data for class notes
@@ -342,8 +339,6 @@ export default function ClassNotes() {
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [isAddFileModalVisible, setAddFileModalVisible] = useState(false);
-  const [isDeleteFileModalVisible, setDeleteFileModalVisible] = useState(false);
 
   // Form states
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
@@ -353,10 +348,7 @@ export default function ClassNotes() {
     description: '',
     content: '',
     departmentId: '',
-    noteId: '',
-    fileId: '',
-    fileName: '',
-    files: []
+    noteId: ''
   });
 
   const getAccessToken = async () => {
@@ -560,77 +552,6 @@ export default function ClassNotes() {
   };
   
 
-  // Handle add file to note
-  const handleAddFile = () => {
-    if (!formData.noteId) {
-      Alert.alert('Error', 'Please enter a valid Note ID');
-      return;
-    }
-
-    // In a real app, this would make an API call
-    const updatedNotes = notes.map(note => {
-      if (note.id === formData.noteId) {
-        return {
-          ...note,
-          files: [
-            ...note.files,
-            { id: Date.now().toString(), name: formData.fileName || 'newfile.pdf' }
-          ]
-        };
-      }
-      return note;
-    });
-
-    if (JSON.stringify(updatedNotes) === JSON.stringify(notes)) {
-      Alert.alert('Error', 'Note not found with the given ID');
-      return;
-    }
-
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setAddFileModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'File added successfully!');
-  };
-
-  // Handle delete file from note
-  const handleDeleteFile = () => {
-    if (!formData.noteId || !formData.fileId) {
-      Alert.alert('Error', 'Please enter valid Note ID and File ID');
-      return;
-    }
-
-    // In a real app, this would make an API call
-    let fileFound = false;
-    const updatedNotes = notes.map(note => {
-      if (note.id === formData.noteId) {
-        const updatedFiles = note.files.filter(file => {
-          if (file.id === formData.fileId) {
-            fileFound = true;
-            return false;
-          }
-          return true;
-        });
-
-        return { ...note, files: updatedFiles };
-      }
-      return note;
-    });
-
-    if (!fileFound) {
-      Alert.alert('Error', 'Note or file not found with the given IDs');
-      return;
-    }
-
-    setNotes(updatedNotes);
-    setFilteredNotes(updatedNotes);
-    setDeleteFileModalVisible(false);
-    resetForm();
-
-    Alert.alert('Success', 'File deleted successfully!');
-  };
-
   // Initialize update form with current note data
   const initUpdateForm = (note: Note) => {
     setCurrentNote(note);
@@ -641,9 +562,6 @@ export default function ClassNotes() {
       departmentId: note.departmentId,
       content: '',
       noteId: note.id,
-      fileId: '',
-      fileName: '',
-      files: note.files
     });
     setUpdateModalVisible(true);
   };
@@ -656,10 +574,7 @@ export default function ClassNotes() {
       description: '',
       content: '',
       departmentId: '',
-      noteId: '',
-      fileId: '',
-      fileName: '',
-      files: []
+      noteId: ''
     });
     setCurrentNote(null);
   };
@@ -705,28 +620,6 @@ export default function ClassNotes() {
             >
               <Ionicons name="trash" size={20} color="#fff" />
               <Text style={styles.managementButtonText}>Delete Note</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setAddFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-attach" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Add File</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteFileModalVisible(true);
-              }}
-            >
-              <Ionicons name="document-text" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete File</Text>
             </TouchableOpacity>
           </View>
 
@@ -980,122 +873,6 @@ export default function ClassNotes() {
                       onPress={() => handleDeleteNote(parseInt(formData.noteId))}
                     >
                       <Text style={styles.modalButtonText}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Add File Modal */}
-      <Modal
-        visible={isAddFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Add File to Note</Text>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Note ID"
-                    value={formData.noteId}
-                    onChangeText={(text) => setFormData({ ...formData, noteId: text })}
-                  />
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File Name (e.g. lecture.pdf)"
-                    value={formData.fileName}
-                    onChangeText={(text) => setFormData({ ...formData, fileName: text })}
-                  />
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setAddFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.submitButton]}
-                      onPress={handleAddFile}
-                    >
-                      <Text style={styles.modalButtonText}>Add File</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Delete File Modal */}
-      <Modal
-        visible={isDeleteFileModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Delete File from Note</Text>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Note ID"
-                    value={formData.noteId}
-                    onChangeText={(text) => setFormData({ ...formData, noteId: text })}
-                  />
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="File ID"
-                    value={formData.fileId}
-                    onChangeText={(text) => setFormData({ ...formData, fileId: text })}
-                  />
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setDeleteFileModalVisible(false);
-                        resetForm();
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.deleteButton]}
-                      onPress={handleDeleteFile}
-                    >
-                      <Text style={styles.modalButtonText}>Delete File</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
