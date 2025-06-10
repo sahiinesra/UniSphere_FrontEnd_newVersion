@@ -324,6 +324,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
 });
 
 export default function ClassNotes() {
@@ -781,41 +786,47 @@ export default function ClassNotes() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Create New Class Note</Text>
 
+                  <Text style={styles.inputLabel}>Course Code (e.g. CS101)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Course Code"
+                    placeholder=""
                     value={formData.courseCode}
                     onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Title (e.g. Week 1 - Introduction to Programming)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Title"
+                    placeholder=""
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Description (Brief summary of the note content)</Text>
                   <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Description"
+                    style={[styles.input, { height: 50, textAlignVertical: 'top', paddingTop: 10 }]}
+                    placeholder=""
                     multiline
                     value={formData.description}
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Content (Detailed note content)</Text>
                   <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Content"
+                    style={[styles.input, { height: 60, textAlignVertical: 'top', paddingTop: 10 }]}
+                    placeholder=""
                     multiline
                     value={formData.content}
                     onChangeText={(text) => setFormData({ ...formData, content: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Department ID (e.g. 1 for Computer Science)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Department ID"
+                    placeholder=""
                     value={formData.departmentId}
                     onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
+                    keyboardType="numeric"
                   />
 
                   <TouchableOpacity
@@ -945,9 +956,10 @@ export default function ClassNotes() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Delete Class Note</Text>
 
+                  <Text style={styles.inputLabel}>Note ID (You can find this at the bottom of each note card)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Note ID"
+                    placeholder=""
                     value={formData.noteId}
                     onChangeText={(text) => setFormData({ ...formData, noteId: text })}
                   />

@@ -497,38 +497,43 @@ export default function PastExams() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Create New Past Exam</Text>
 
+                  <Text style={styles.inputLabel}>Year (e.g. 2023)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Year (e.g. 2023)"
+                    placeholder=""
                     value={formData.year}
                     onChangeText={(text) => setFormData({ ...formData, year: text })}
                     keyboardType="numeric"
                   />
 
+                  <Text style={styles.inputLabel}>Term (FALL or SPRING)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Term (Fall, Spring, Summer)"
+                    placeholder=""
                     value={formData.term}
                     onChangeText={(text) => setFormData({ ...formData, term: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Department ID (e.g. 1 for Computer Science)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Department ID"
+                    placeholder=""
                     value={formData.departmentId}
                     onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Course Code (e.g. CS101)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Course Code"
+                    placeholder=""
                     value={formData.courseCode}
                     onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Exam Title (e.g. Introduction to Programming Midterm 1)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Title (Course Name)"
+                    placeholder=""
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
@@ -587,38 +592,43 @@ export default function PastExams() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Update Past Exam</Text>
 
+                  <Text style={styles.inputLabel}>Year (e.g. 2023)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Year (e.g. 2023)"
+                    placeholder=""
                     value={formData.year}
                     onChangeText={(text) => setFormData({ ...formData, year: text })}
                     keyboardType="numeric"
                   />
 
+                  <Text style={styles.inputLabel}>Term (Fall, Spring, Summer)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Term (Fall, Spring, Summer)"
+                    placeholder=""
                     value={formData.term}
                     onChangeText={(text) => setFormData({ ...formData, term: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Department ID</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Department ID"
+                    placeholder=""
                     value={formData.departmentId}
                     onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Course Code</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Course Code"
+                    placeholder=""
                     value={formData.courseCode}
                     onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Title (Course Name)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Title (Course Name)"
+                    placeholder=""
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
@@ -667,9 +677,10 @@ export default function PastExams() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Delete Past Exam</Text>
 
+                  <Text style={styles.inputLabel}>Exam ID (You can find this at the bottom of each exam card)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Exam ID"
+                    placeholder=""
                     value={formData.examId}
                     onChangeText={(text) => setFormData({ ...formData, examId: text })}
                   />
@@ -1029,5 +1040,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 5,
     fontSize: 14,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 }); 
