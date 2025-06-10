@@ -1,10 +1,11 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const CommunityDetails = () => {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [isJoined, setIsJoined] = useState(false);
   const [hasProfilePhoto, setHasProfilePhoto] = useState(true);
   const [logoUri, setLogoUri] = useState('https://placeholder.com/150');
@@ -12,6 +13,17 @@ const CommunityDetails = () => {
   const handleJoinLeave = () => {
     setIsJoined(!isJoined);
     // TODO: Implement actual join/leave functionality with backend
+  };
+
+  const handleChatPress = () => {
+    router.push({
+      pathname: '/screens/CommunityChat',
+      params: { 
+        communityId: id,
+        communityName: 'Community Name', // Replace with actual community name
+        memberCount: 42 // Replace with actual member count
+      }
+    });
   };
 
   const handleUpdatePhoto = async () => {
@@ -98,14 +110,25 @@ const CommunityDetails = () => {
           </Text>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.button, isJoined ? styles.leaveButton : styles.joinButton]} 
-          onPress={handleJoinLeave}
-        >
-          <Text style={styles.buttonText}>
-            {isJoined ? 'Leave Community' : 'Join Community'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={[styles.button, isJoined ? styles.leaveButton : styles.joinButton]} 
+            onPress={handleJoinLeave}
+          >
+            <Text style={styles.buttonText}>
+              {isJoined ? 'Leave Community' : 'Join Community'}
+            </Text>
+          </TouchableOpacity>
+
+          {isJoined && (
+            <TouchableOpacity 
+              style={[styles.button, styles.chatButton]} 
+              onPress={handleChatPress}
+            >
+              <Text style={styles.buttonText}>Open Chat</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </>
   );
@@ -184,6 +207,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  actionButtons: {
+    gap: 10,
+  },
+  chatButton: {
+    backgroundColor: '#007AFF',
   },
 });
 
