@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -624,6 +625,52 @@ export default function ClassNotes() {
     setCurrentNote(null);
   };
 
+  // Update handleFileOpen function to use the file URL from backend
+  const handleFileOpen = async (fileId: string) => {
+    try {
+      const token = await getAccessToken();
+      
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      // First get the file details from the API
+      const response = await axios.get(
+        `http://192.168.0.24:8080/api/v1/files/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+
+      if (response.data?.data?.fileUrl) {
+        // Replace localhost with the production URL
+        const fileUrl = response.data.data.fileUrl.replace(
+          'http://localhost:8080',
+          'http://192.168.0.24:8080'
+        );
+
+        const supported = await Linking.canOpenURL(fileUrl);
+        if (supported) {
+          await Linking.openURL(fileUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open this file type');
+        }
+      } else {
+        Alert.alert('Error', 'File URL not found');
+      }
+    } catch (error: any) {
+      console.error('Error opening file:', error);
+      if (error.response?.status === 401) {
+        Alert.alert('Error', 'Not authorized to access this file. Please log in again.');
+      } else {
+        Alert.alert('Error', 'Failed to open file');
+      }
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{
@@ -690,11 +737,17 @@ export default function ClassNotes() {
                 <View style={styles.filesContainer}>
                   <Text style={styles.filesHeader}>Note Files:</Text>
                   {note.files.map((file: NoteFile) => (
-                    <View key={file.id} style={styles.fileItem}>
+                    <TouchableOpacity
+                      key={file.id}
+                      style={styles.fileItem}
+                      onPress={() => handleFileOpen(file.id)}
+                    >
                       <Ionicons name="document" size={16} color="#2196F3" />
-                      <Text style={styles.fileName}>{file.name}</Text>
+                      <Text style={[styles.fileName, { color: '#2196F3', textDecorationLine: 'underline' }]}>
+                        {file.name}
+                      </Text>
                       <Text style={styles.fileId}>ID: {file.id}</Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
