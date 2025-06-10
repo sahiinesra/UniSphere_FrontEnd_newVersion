@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import * as DocumentPicker from 'expo-document-picker';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -17,6 +19,12 @@ import {
 } from 'react-native';
 
 // Define types for our data
+interface SelectedFile {
+  uri: string;
+  name: string;
+  mimeType: string;
+}
+
 interface ExamFile {
   id: string;
   name: string;
@@ -49,6 +57,7 @@ export default function PastExams() {
   const [exams, setExams] = useState<PastExam[]>([]);
   const [filteredExams, setFilteredExams] = useState<PastExam[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
 
   // UI Modals
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
@@ -119,7 +128,12 @@ export default function PastExams() {
         }
       );
 
-      const pastExams = response.data.data.pastExams;
+      const pastExams = response.data.data.pastExams.map((exam: any) => ({
+        ...exam,
+        files: exam.files || []
+      }));
+
+      console.log('Processed Past Exams:', JSON.stringify(pastExams, null, 2));
       return pastExams;
 
     } catch (error) {
@@ -138,37 +152,49 @@ export default function PastExams() {
         return;
       }
 
+      // Create form data for multipart request
+      const formDataObj = new FormData();
+      formDataObj.append('year', formData.year);
+      formDataObj.append('term', formData.term);
+      formDataObj.append('departmentId', formData.departmentId);
+      formDataObj.append('courseCode', formData.courseCode);
+      formDataObj.append('title', formData.title);
+
+      // Append file if selected
+      if (selectedFile) {
+        formDataObj.append('files', {
+          uri: selectedFile.uri,
+          type: selectedFile.mimeType,
+          name: selectedFile.name,
+        } as any);
+      }
+
       const response = await axios.post(
         'http://192.168.0.24:8080/api/v1/past-exams',
-        {
-          year: parseInt(formData.year, 10),
-          term: (formData.term), 
-          departmentId: parseInt(formData.departmentId, 10),
-          courseCode: formData.courseCode,
-          title: formData.title,
-          fileIds: [],
-          instructorId: 0,
-        },
+        formDataObj,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
 
-      const createdExam = response.data.data;
+      console.log('Create exam response:', JSON.stringify(response.data, null, 2));
 
-      const updatedExams = [...exams, createdExam];
-      setExams(updatedExams);
-      setFilteredExams(updatedExams);
+      // Immediately fetch the updated list of exams
+      const updatedExamsList = await fetchPastExams();
+      setExams(updatedExamsList);
+      setFilteredExams(updatedExamsList);
+      
       setCreateModalVisible(false);
+      setSelectedFile(null);
       resetForm();
 
       Alert.alert('Success', 'Exam created successfully!');
     } catch (error: any) {
-      console.error('Create exam error:', error);
-      Alert.alert('Error', 'Exam creation failed.');
+      console.error('Create exam error:', error.response?.data || error.message);
+      Alert.alert('Error', 'An error occurred while creating the exam.');
     }
   };
 
@@ -287,6 +313,79 @@ export default function PastExams() {
     setCurrentExam(null);
   };
 
+  // Add file picker function
+  const handleFilePick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.mimeType === 'application/pdf') {
+          setSelectedFile({
+            uri: file.uri,
+            name: file.name,
+            mimeType: file.mimeType,
+          });
+          Alert.alert('Success', `Selected file: ${file.name}`);
+        } else {
+          Alert.alert('Error', 'Please select a PDF file');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking file:', error);
+      Alert.alert('Error', 'Failed to pick file');
+    }
+  };
+
+  // Update handleFileOpen function to use the file URL from backend
+  const handleFileOpen = async (fileId: string) => {
+    try {
+      const token = await getAccessToken();
+      
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      // First get the file details from the API
+      const response = await axios.get(
+        `http://192.168.0.24:8080/api/v1/files/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+
+      if (response.data?.data?.fileUrl) {
+        // Replace localhost with the production URL
+        const fileUrl = response.data.data.fileUrl.replace(
+          'http://localhost:8080',
+          'http://192.168.0.24:8080'
+        );
+
+        const supported = await Linking.canOpenURL(fileUrl);
+        if (supported) {
+          await Linking.openURL(fileUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open this file type');
+        }
+      } else {
+        Alert.alert('Error', 'File URL not found');
+      }
+    } catch (error: any) {
+      console.error('Error opening file:', error);
+      if (error.response?.status === 401) {
+        Alert.alert('Error', 'Not authorized to access this file. Please log in again.');
+      } else {
+        Alert.alert('Error', 'Failed to open file');
+      }
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{
@@ -349,18 +448,24 @@ export default function PastExams() {
                 </TouchableOpacity>
               </View>
 
-              {Array.isArray(exam.files) && exam.files.length > 0 && (
-                <View style={styles.filesContainer}>
-                  <Text style={styles.filesHeader}>Exam Files:</Text>
-                  {exam.files.map(file => (
-                    <View key={file.id} style={styles.fileItem}>
-                      <Ionicons name="document" size={16} color="#2196F3" />
-                      <Text style={styles.fileName}>{file.name}</Text>
-                      <Text style={styles.fileId}>ID: {file.id}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+              <View style={styles.filesContainer}>
+                <Text style={styles.filesHeader}>Exam Files:</Text>
+                {exam.fileIds && exam.fileIds.length > 0 ? (
+                  exam.fileIds.map(fileId => (
+                    <TouchableOpacity
+                      key={fileId}
+                      style={styles.fileItem}
+                      onPress={() => handleFileOpen(fileId)}
+                    >
+                      <Ionicons name="document-text-outline" size={24} color="#2196F3" />
+                      <Text style={styles.fileName}>Exam Document</Text>
+                      <Text style={styles.fileId}>ID: {fileId}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.noFilesText}>No files uploaded</Text>
+                )}
+              </View>
 
               <Text style={styles.examId}>Exam ID: {exam.id}</Text>
             </View>
@@ -437,12 +542,12 @@ export default function PastExams() {
 
                   <TouchableOpacity
                     style={styles.uploadFileButton}
-                    onPress={() => {
-                      Alert.alert('Upload', 'Exam file upload will be implemented');
-                    }}
+                    onPress={handleFilePick}
                   >
                     <Ionicons name="document-attach" size={20} color="#fff" />
-                    <Text style={styles.uploadFileButtonText}>Upload Exam File</Text>
+                    <Text style={styles.uploadFileButtonText}>
+                      {selectedFile ? `Selected: ${selectedFile.name}` : 'Upload Exam File'}
+                    </Text>
                   </TouchableOpacity>
 
                   <View style={styles.modalButtons}>
@@ -696,32 +801,36 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   filesContainer: {
-    marginTop: 10,
+    marginTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#CCCCCC',
-    paddingTop: 10,
+    paddingTop: 15,
   },
   filesHeader: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#000000',
+    marginBottom: 10,
   },
   fileItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
-    backgroundColor: '#F0F0F0',
-    padding: 5,
-    borderRadius: 3,
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   fileName: {
-    marginLeft: 5,
-    fontSize: 14,
+    marginLeft: 10,
+    fontSize: 16,
     flex: 1,
   },
   fileId: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666666',
+    marginLeft: 'auto',
   },
   examId: {
     fontSize: 12,
@@ -826,5 +935,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 5,
+  },
+  noFilesText: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 10,
   },
 }); 
