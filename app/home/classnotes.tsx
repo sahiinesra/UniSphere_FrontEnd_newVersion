@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import * as DocumentPicker from 'expo-document-picker';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
@@ -49,6 +50,13 @@ interface FormData {
   content: string;
   departmentId: string;
   noteId: string;
+}
+
+// Add new interface for selected file
+interface SelectedFile {
+  uri: string;
+  name: string;
+  mimeType: string;
 }
 
 // Mock data for class notes
@@ -334,6 +342,7 @@ export default function ClassNotes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [classNotes, setClassNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
 
   // State for create/update form
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
@@ -418,7 +427,34 @@ export default function ClassNotes() {
     loadClassNotes();
   }, []);
 
-  // create note
+  // Add file picker function
+  const handleFilePick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.mimeType === 'application/pdf') {
+          setSelectedFile({
+            uri: file.uri,
+            name: file.name,
+            mimeType: file.mimeType,
+          });
+          Alert.alert('Success', `Selected file: ${file.name}`);
+        } else {
+          Alert.alert('Error', 'Please select a PDF file');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking file:', error);
+      Alert.alert('Error', 'Failed to pick file');
+    }
+  };
+
+  // Modify create note function to handle file upload
   const handleCreateNote = async () => {
     try {
       const token = await getAccessToken();
@@ -428,23 +464,31 @@ export default function ClassNotes() {
         return;
       }
 
-      const noteData = {
-        content: formData.content,
-        courseCode: formData.courseCode,
-        departmentId: parseInt(formData.departmentId, 10),
-        description: formData.description,
-        files: [], // seçilen dosya ID'leri buraya eklenmeli
-        title: formData.title,
-        userId: 1, // auth sisteminden dinamik olarak alınmalı
-      };
+      // Create form data for multipart request
+      const formDataObj = new FormData();
+      formDataObj.append('content', formData.content);
+      formDataObj.append('courseCode', formData.courseCode);
+      formDataObj.append('departmentId', formData.departmentId);
+      formDataObj.append('description', formData.description);
+      formDataObj.append('title', formData.title);
+      formDataObj.append('userId', '1'); // auth sisteminden dinamik olarak alınmalı
+
+      // Append file if selected
+      if (selectedFile) {
+        formDataObj.append('files', {
+          uri: selectedFile.uri,
+          type: selectedFile.mimeType,
+          name: selectedFile.name,
+        } as any);
+      }
 
       const response = await axios.post(
-      'http://192.168.0.24:8080/api/v1/class-notes',
-        noteData,
+        'http://192.168.0.24:8080/api/v1/class-notes',
+        formDataObj,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
@@ -455,6 +499,7 @@ export default function ClassNotes() {
       setNotes(updatedNotes);
       setFilteredNotes(updatedNotes);
       setCreateModalVisible(false);
+      setSelectedFile(null);
       resetForm();
 
       Alert.alert('Success', 'Note created successfully!');
@@ -724,12 +769,12 @@ export default function ClassNotes() {
 
                   <TouchableOpacity
                     style={styles.uploadFileButton}
-                    onPress={() => {
-                      Alert.alert('Upload', 'File upload will be implemented');
-                    }}
+                    onPress={handleFilePick}
                   >
                     <Ionicons name="document-attach" size={20} color="#fff" />
-                    <Text style={styles.uploadFileButtonText}>Add File</Text>
+                    <Text style={styles.uploadFileButtonText}>
+                      {selectedFile ? `Selected: ${selectedFile.name}` : 'Add PDF File'}
+                    </Text>
                   </TouchableOpacity>
 
                   <View style={styles.modalButtons}>
