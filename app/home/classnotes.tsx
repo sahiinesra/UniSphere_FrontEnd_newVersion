@@ -528,10 +528,10 @@ export default function ClassNotes() {
       const response = await axios.put(
         `http://192.168.0.24:8080/api/v1/class-notes/${formData.noteId}`,
         {
-          title: formData.title,
-          content: formData.content || "No content provided",
+          content: formData.content,
           courseCode: formData.courseCode,
-          description: formData.description || "",
+          description: formData.description,
+          title: formData.title
         },
         {
           headers: {
@@ -874,33 +874,38 @@ export default function ClassNotes() {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Update Class Note</Text>
 
+                  <Text style={styles.inputLabel}>Course Code</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Course Code"
+                    placeholder=""
                     value={formData.courseCode}
                     onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Title</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Title"
+                    placeholder=""
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Description</Text>
                   <TextInput
                     style={[styles.input, styles.textArea]}
-                    placeholder="Description"
+                    placeholder=""
                     multiline
                     value={formData.description}
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                   />
 
+                  <Text style={styles.inputLabel}>Content</Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="Department ID"
-                    value={formData.departmentId}
-                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
+                    style={[styles.input, styles.textArea]}
+                    placeholder=""
+                    multiline
+                    value={formData.content}
+                    onChangeText={(text) => setFormData({ ...formData, content: text })}
                   />
 
                   <View style={styles.modalButtons}>
