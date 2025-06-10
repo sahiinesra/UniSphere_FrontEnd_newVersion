@@ -72,16 +72,18 @@ const CreateCommunity = () => {
       
       <View style={styles.container}>
         <View style={styles.form}>
+          <Text style={styles.inputLabel}>Community Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="Community Name"
+            placeholder=""
             value={communityName}
             onChangeText={setCommunityName}
           />
           
+          <Text style={styles.inputLabel}>Community Abbreviation (max 10 characters)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Community Abbreviation"
+            placeholder=""
             value={communityAbbreviation}
             onChangeText={setCommunityAbbreviation}
             maxLength={10}
@@ -169,6 +171,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#000000',
   },
 });
 
