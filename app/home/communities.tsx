@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Define colors to match the application theme
 const colors = {
@@ -21,6 +21,8 @@ export type Community = {
   memberCount: number;
   abbreviation: string;
   logoUri?: string;
+  description?: string;
+  leadId?: string;
 };
 
 // Initial mock data for communities
@@ -48,6 +50,12 @@ export default function Communities() {
   const [showMyCommunities, setShowMyCommunities] = useState(false);
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
   const [communities, setCommunities] = useState<Community[]>(initialMockCommunities);
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [updateFormData, setUpdateFormData] = useState({
+    name: '',
+    abbreviation: '',
+  });
 
   useEffect(() => {
     if (newCommunity) {
@@ -114,12 +122,65 @@ export default function Communities() {
     setJoinedCommunities(prev => [...prev, communityId]);
   };
 
-  
-//update community
-  const handleUpdateCommunity = (communityId: string) => {
-    // TODO: Implement update community functionality
+  //update community
+  const handleUpdateCommunity = (community: Community) => {
+    setSelectedCommunity(community);
+    setUpdateFormData({
+      name: community.name,
+      abbreviation: community.abbreviation,
+    });
+    setUpdateModalVisible(true);
   };
-//delete community
+
+  const handleUpdateSubmit = async () => {
+    if (!selectedCommunity) return;
+
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      const response = await axios.put(
+        `http://192.168.0.24:8080/api/v1/communities/${selectedCommunity.id}`,
+        {
+          name: updateFormData.name.trim(),
+          abbreviation: updateFormData.abbreviation.trim(),
+          description: selectedCommunity.description || 'Community Description',
+          category: selectedCommunity.category || 'ACADEMIC',
+          leadId: selectedCommunity.leadId || '1'
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // Update the communities list with the updated community
+      setCommunities(prevCommunities =>
+        prevCommunities.map(community =>
+          community.id === selectedCommunity.id
+            ? { 
+                ...community, 
+                name: updateFormData.name, 
+                abbreviation: updateFormData.abbreviation 
+              }
+            : community
+        )
+      );
+
+      setUpdateModalVisible(false);
+      Alert.alert('Success', 'Community updated successfully!');
+    } catch (error: any) {
+      console.error('Failed to update community:', error.response?.data || error);
+      Alert.alert('Error', 'Failed to update community. Please try again.');
+    }
+  };
+
+  //delete community
   const handleDeleteCommunity = (communityId: string) => {
     setCommunities(prev => prev.filter(c => c.id !== communityId));
     // TODO: Implement delete community functionality with backend
@@ -175,7 +236,7 @@ export default function Communities() {
               <View style={styles.cardActions}>
                 <TouchableOpacity 
                   style={[styles.actionButton, styles.updateButton]}
-                  onPress={() => handleUpdateCommunity(community.id)}
+                  onPress={() => handleUpdateCommunity(community)}
                 >
                   <Text style={styles.buttonText}>Update</Text>
                 </TouchableOpacity>
@@ -190,6 +251,64 @@ export default function Communities() {
             </View>
           ))}
         </ScrollView>
+
+        {/* Update Community Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={updateModalVisible}
+          onRequestClose={() => setUpdateModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContainer}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Update Community</Text>
+                <TouchableOpacity onPress={() => setUpdateModalVisible(false)}>
+                  <Text style={styles.closeButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Community Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={updateFormData.name}
+                  onChangeText={(text) => setUpdateFormData(prev => ({ ...prev, name: text }))}
+                  placeholder="Enter community name"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Abbreviation</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={updateFormData.abbreviation}
+                  onChangeText={(text) => setUpdateFormData(prev => ({ ...prev, abbreviation: text }))}
+                  placeholder="Enter abbreviation"
+                  maxLength={10}
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setUpdateModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleUpdateSubmit}
+                >
+                  <Text style={styles.modalButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </View>
     </>
   );
@@ -279,5 +398,75 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.cardBackground,
     fontWeight: 'bold',
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    margin: 20,
+    borderRadius: 8,
+    padding: 20,
+    borderWidth: 3,
+    borderColor: colors.border,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  closeButton: {
+    fontSize: 24,
+    color: colors.text,
+  },
+  formGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: colors.text,
+  },
+  modalInput: {
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+    fontSize: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 20,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  cancelButton: {
+    backgroundColor: colors.danger,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+  },
+  modalButtonText: {
+    color: colors.cardBackground,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 
