@@ -5,17 +5,12 @@ import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-const CreateCommunity = () => {
+export default function CreateCommunity() {
   const router = useRouter();
   const [communityName, setCommunityName] = useState('');
   const [communityAbbreviation, setCommunityAbbreviation] = useState('');
   const [logoUri, setLogoUri] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const getAccessToken = async () => {
-    const token = await SecureStore.getItemAsync('accessToken');
-    return token;
-  };
 
   const handleSelectLogo = async () => {
     try {
@@ -31,10 +26,13 @@ const CreateCommunity = () => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 1,
+        allowsMultipleSelection: false,
       });
 
-      if (!result.canceled) {
-        setLogoUri(result.assets[0].uri);
+      if (!result.canceled && result.assets[0]) {
+        const selectedAsset = result.assets[0];
+        console.log('Selected image:', selectedAsset);
+        setLogoUri(selectedAsset.uri);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -52,68 +50,66 @@ const CreateCommunity = () => {
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = await getAccessToken();
+      const token = await SecureStore.getItemAsync('accessToken');
       
       if (!token) {
         Alert.alert('Error', 'Authentication token not found');
         return;
       }
 
-      // First upload the logo if selected
-      let profilePhotoFileId: number | undefined;
+      const formData = new FormData();
+      formData.append('name', communityName.trim());
+      formData.append('abbreviation', communityAbbreviation.trim());
+      formData.append('description', 'Community Description');
+      formData.append('category', 'ACADEMIC');
+
       if (logoUri) {
-        const formData = new FormData();
-        formData.append('file', {
+        // Get file extension from URI
+        const extension = logoUri.split('.').pop() || 'jpg';
+        
+        formData.append('profilePhoto', {
           uri: logoUri,
-          type: 'image/jpeg',
-          name: 'community_logo.jpg',
+          type: `image/${extension}`,
+          name: `profile.${extension}`,
         } as any);
 
-        const fileResponse = await axios.post(
-          'http://192.168.0.22:8080/api/v1/files/upload',
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        profilePhotoFileId = fileResponse.data.data.id;
+        console.log('Uploading photo:', {
+          uri: logoUri,
+          type: `image/${extension}`,
+          name: `profile.${extension}`
+        });
       }
 
-      // Create the community
+      console.log('Creating community with data:', {
+        name: communityName,
+        abbreviation: communityAbbreviation,
+        hasPhoto: !!logoUri
+      });
+
       const response = await axios.post(
-        'http://192.168.0.22:8080/api/v1/communities',
-        {
-          name: communityName.trim(),
-          abbreviation: communityAbbreviation.trim(),
-          profilePhotoFileId
-        },
+        'http://192.168.0.24:8080/api/v1/communities',
+        formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json'
+          },
         }
       );
 
-      const createdCommunity = response.data.data;
-      
-      // Navigate back and update the communities list
-      router.back();
-      router.setParams({ newCommunity: JSON.stringify(createdCommunity) });
-      
+      console.log('Community created:', response.data);
       Alert.alert('Success', 'Community created successfully!');
+      router.back();
+
     } catch (error: any) {
-      console.error('Create community error:', error);
-      if (error.response?.status === 401) {
-        Alert.alert('Error', 'Not authorized. Please log in again.');
-      } else {
-        Alert.alert('Error', 'Failed to create community. Please try again.');
-      }
+      console.error('Failed to create community:', error.response?.data || error);
+      Alert.alert(
+        'Error', 
+        error.response?.data?.message || 'Failed to create community. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -121,7 +117,7 @@ const CreateCommunity = () => {
 
   return (
     <>
-      <Stack.Screen options={{ 
+      <Stack.Screen options={{
         title: 'Create Community',
       }} />
       
@@ -177,7 +173,7 @@ const CreateCommunity = () => {
       </View>
     </>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -242,6 +238,4 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.7,
   },
-});
-
-export default CreateCommunity; 
+}); 

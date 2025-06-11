@@ -60,61 +60,53 @@ export default function Communities() {
     }
   }, [newCommunity]);
 
-  //handle get communities
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
 
+  const fetchCommunities = async (page = 1, size = 10) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return [];
+      }
 
-const getAccessToken = async () => {
-  const token = await SecureStore.getItemAsync('accessToken');
-  return token;
-};
+      const response = await axios.get(
+        `http://192.168.0.24:8080/api/v1/communities?page=${page}&pageSize=${size}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-const fetchCommunities = async (page = 1, size = 10) => {
-  try {
-    const token = await getAccessToken();
-    if (!token) {
-      Alert.alert('Error', 'JWT token not found.');
+      const communities = response.data.data.communities.map((community: any) => ({
+        ...community,
+      }));
+
+      console.log('Fetched Communities:', JSON.stringify(communities, null, 2));
+      return communities;
+
+    } catch (error) {
+      console.error('Failed to fetch communities:', error);
+      Alert.alert('Error', 'Failed to retrieve communities.');
       return [];
     }
-
-    const response = await axios.get(
-      `http://192.168.0.24:8080/api/v1/communities?page=${page}&pageSize=${size}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const communities = response.data.data.communities.map((community: any) => ({
-      ...community,
-    }));
-
-    console.log('Fetched Communities:', JSON.stringify(communities, null, 2));
-    return communities;
-
-  } catch (error) {
-    console.error('Failed to fetch communities:', error);
-    Alert.alert('Error', 'Failed to retrieve communities.');
-    return [];
-  }
-};
-
-useEffect(() => {
-  const loadCommunities = async () => {
-    const data = await fetchCommunities();
-    setCommunities(data);
   };
-  loadCommunities();
-}, []);
 
-//handle create community
-  const handleCreateCommunity = () => {
-    router.push('/home/community/create');
-  };
+  useEffect(() => {
+    const loadCommunities = async () => {
+      const data = await fetchCommunities();
+      setCommunities(data);
+    };
+    loadCommunities();
+  }, []);
 
   const handleCommunityPress = (communityId: string) => {
-    router.push(`/home/community/create`);
+    router.push(`/home/community/${communityId}`);
   };
 
   //handle join community
@@ -162,7 +154,7 @@ useEffect(() => {
 
         <TouchableOpacity 
           style={styles.createButton}
-          onPress={handleCreateCommunity}
+          onPress={() => router.push('/home/community/create' as any)}
         >
           <Text style={styles.buttonText}>Create New Community</Text>
         </TouchableOpacity>
