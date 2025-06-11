@@ -1,6 +1,8 @@
+import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Define colors to match the application theme
 const colors = {
@@ -58,18 +60,74 @@ export default function Communities() {
     }
   }, [newCommunity]);
 
+  //handle get communities
+
+
+const getAccessToken = async () => {
+  const token = await SecureStore.getItemAsync('accessToken');
+  return token;
+};
+
+const fetchCommunities = async (page = 1, size = 10) => {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      Alert.alert('Error', 'JWT token not found.');
+      return [];
+    }
+
+    const response = await axios.get(
+      `http://192.168.0.24:8080/api/v1/communities?page=${page}&pageSize=${size}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const communities = response.data.data.communities.map((community: any) => ({
+      ...community,
+    }));
+
+    console.log('Fetched Communities:', JSON.stringify(communities, null, 2));
+    return communities;
+
+  } catch (error) {
+    console.error('Failed to fetch communities:', error);
+    Alert.alert('Error', 'Failed to retrieve communities.');
+    return [];
+  }
+};
+
+useEffect(() => {
+  const loadCommunities = async () => {
+    const data = await fetchCommunities();
+    setCommunities(data);
+  };
+  loadCommunities();
+}, []);
+
+//handle create community
   const handleCreateCommunity = () => {
     router.push('/home/community/create');
   };
 
   const handleCommunityPress = (communityId: string) => {
-    router.push(`/home/community/${communityId}`);
+    router.push(`/home/community/create`);
   };
 
+  //handle join community
+  const handleJoinCommunity = (communityId: string) => {
+    setJoinedCommunities(prev => [...prev, communityId]);
+  };
+
+  
+//update community
   const handleUpdateCommunity = (communityId: string) => {
     // TODO: Implement update community functionality
   };
-
+//delete community
   const handleDeleteCommunity = (communityId: string) => {
     setCommunities(prev => prev.filter(c => c.id !== communityId));
     // TODO: Implement delete community functionality with backend

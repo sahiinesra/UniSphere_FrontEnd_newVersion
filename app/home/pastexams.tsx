@@ -103,8 +103,6 @@ export default function PastExams() {
   };
 
   // Handle create exam
-
-
   const getAccessToken = async () => {
     const token = await SecureStore.getItemAsync('accessToken');
     return token;

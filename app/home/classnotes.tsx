@@ -455,7 +455,7 @@ export default function ClassNotes() {
     }
   };
 
-  // Modify create note function to handle file upload
+  // create note
   const handleCreateNote = async () => {
     try {
       const token = await getAccessToken();
@@ -464,17 +464,14 @@ export default function ClassNotes() {
         Alert.alert('Error', 'JWT token bulunamadı.');
         return;
       }
-
-      // Create form data for multipart request
       const formDataObj = new FormData();
       formDataObj.append('content', formData.content);
       formDataObj.append('courseCode', formData.courseCode);
       formDataObj.append('departmentId', formData.departmentId);
       formDataObj.append('description', formData.description);
       formDataObj.append('title', formData.title);
-      formDataObj.append('userId', '1'); // auth sisteminden dinamik olarak alınmalı
+      formDataObj.append('userId', '1'); 
 
-      // Append file if selected
       if (selectedFile) {
         formDataObj.append('files', {
           uri: selectedFile.uri,

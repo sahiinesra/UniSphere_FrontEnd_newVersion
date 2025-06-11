@@ -1,21 +1,28 @@
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import type { Community } from '../communities';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const CreateCommunity = () => {
   const router = useRouter();
   const [communityName, setCommunityName] = useState('');
   const [communityAbbreviation, setCommunityAbbreviation] = useState('');
   const [logoUri, setLogoUri] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
 
   const handleSelectLogo = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        alert('Permission to access camera roll is required!');
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
         return;
       }
 
@@ -31,37 +38,85 @@ const CreateCommunity = () => {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      alert('Failed to pick image');
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!communityName.trim()) {
-      alert('Please enter a community name');
+      Alert.alert('Error', 'Please enter a community name');
       return;
     }
     if (!communityAbbreviation.trim()) {
-      alert('Please enter a community abbreviation');
+      Alert.alert('Error', 'Please enter a community abbreviation');
       return;
     }
 
-    // Create new community object
-    const newCommunity: Community = {
-      id: Date.now().toString(), // Temporary ID generation
-      name: communityName.trim(),
-      abbreviation: communityAbbreviation.trim(),
-      category: 'General', // Default category
-      memberCount: 1, // Start with 1 member (creator)
-      logoUri: logoUri || undefined,
-    };
+    try {
+      setLoading(true);
+      const token = await getAccessToken();
+      
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
 
-    // TODO: Send the new community data to the backend
-    
-    // Navigate back to communities page
-    router.back();
-    
-    // Update the communities list in the main page
-    router.setParams({ newCommunity: JSON.stringify(newCommunity) });
+      // First upload the logo if selected
+      let profilePhotoFileId: number | undefined;
+      if (logoUri) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: logoUri,
+          type: 'image/jpeg',
+          name: 'community_logo.jpg',
+        } as any);
+
+        const fileResponse = await axios.post(
+          'http://192.168.0.22:8080/api/v1/files/upload',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        profilePhotoFileId = fileResponse.data.data.id;
+      }
+
+      // Create the community
+      const response = await axios.post(
+        'http://192.168.0.22:8080/api/v1/communities',
+        {
+          name: communityName.trim(),
+          abbreviation: communityAbbreviation.trim(),
+          profilePhotoFileId
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      const createdCommunity = response.data.data;
+      
+      // Navigate back and update the communities list
+      router.back();
+      router.setParams({ newCommunity: JSON.stringify(createdCommunity) });
+      
+      Alert.alert('Success', 'Community created successfully!');
+    } catch (error: any) {
+      console.error('Create community error:', error);
+      if (error.response?.status === 401) {
+        Alert.alert('Error', 'Not authorized. Please log in again.');
+      } else {
+        Alert.alert('Error', 'Failed to create community. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -75,24 +130,27 @@ const CreateCommunity = () => {
           <Text style={styles.inputLabel}>Community Name</Text>
           <TextInput
             style={styles.input}
-            placeholder=""
+            placeholder="Enter community name"
             value={communityName}
             onChangeText={setCommunityName}
+            editable={!loading}
           />
           
           <Text style={styles.inputLabel}>Community Abbreviation (max 10 characters)</Text>
           <TextInput
             style={styles.input}
-            placeholder=""
+            placeholder="Enter abbreviation"
             value={communityAbbreviation}
             onChangeText={setCommunityAbbreviation}
             maxLength={10}
+            editable={!loading}
           />
 
           <View style={styles.logoSection}>
             <TouchableOpacity 
-              style={styles.logoContainer}
+              style={[styles.logoContainer, loading && styles.disabled]}
               onPress={handleSelectLogo}
+              disabled={loading}
             >
               {logoUri ? (
                 <Image
@@ -107,10 +165,13 @@ const CreateCommunity = () => {
           </View>
 
           <TouchableOpacity 
-            style={styles.createButton}
+            style={[styles.createButton, loading && styles.disabled]}
             onPress={handleCreate}
+            disabled={loading}
           >
-            <Text style={styles.buttonText}>Create Community</Text>
+            <Text style={styles.buttonText}>
+              {loading ? 'Creating...' : 'Create Community'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -177,6 +238,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
     color: '#000000',
+  },
+  disabled: {
+    opacity: 0.7,
   },
 });
 
