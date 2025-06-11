@@ -118,9 +118,9 @@ export default function Communities() {
   };
 
   //handle join community
-  const handleJoinCommunity = (communityId: string) => {
-    setJoinedCommunities(prev => [...prev, communityId]);
-  };
+  
+
+
 
   //update community
   const handleUpdateCommunity = (community: Community) => {
@@ -198,8 +198,7 @@ export default function Communities() {
           },
         }
       );
-
-      // Update local state after successful deletion
+      
       setCommunities(prev => prev.filter(c => c.id !== communityId));
       Alert.alert('Success', 'Community deleted successfully!');
     } catch (error: any) {
@@ -333,7 +332,7 @@ export default function Communities() {
         </Modal>
       </View>
     </>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -410,6 +409,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 2,
     borderColor: colors.border,
+  },
+  joinButton: {
+    backgroundColor: '#007AFF', // iOS blue color for join
   },
   updateButton: {
     backgroundColor: colors.primary,

@@ -1,18 +1,94 @@
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const CommunityDetails = () => {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [isJoined, setIsJoined] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [hasProfilePhoto, setHasProfilePhoto] = useState(true);
   const [logoUri, setLogoUri] = useState('https://placeholder.com/150');
 
-  const handleJoinLeave = () => {
-    setIsJoined(!isJoined);
-    // TODO: Implement actual join/leave functionality with backend
+  const getAccessToken = async () => {
+    const token = await SecureStore.getItemAsync('accessToken');
+    return token;
+  };
+
+  // Check if user is a member of this community
+  useEffect(() => {
+    const checkMembership = async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          Alert.alert('Error', 'Authentication token not found');
+          return;
+        }
+
+        const response = await axios.get(
+          `http://192.168.0.24:8080/api/v1/communities/${id}/participants/check`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        // Response format: { data: { additionalProp1: boolean, ... }, timestamp: string }
+        const membershipData = response.data.data;
+        const isMemberValue = Object.values(membershipData).some(value => value === true);
+        setIsMember(isMemberValue);
+      } catch (error: any) {
+        console.error('Failed to check membership:', error.response?.data || error);
+      }
+    };
+
+    checkMembership();
+  }, [id]);
+
+  const handleJoinCommunity = async (communityId: string) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      if (isMember) {
+        // Leave community
+        await axios.delete(
+          `http://192.168.0.24:8080/api/v1/communities/${communityId}/participants/me`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setIsMember(false);
+        Alert.alert('Success', 'Successfully left the community!');
+      } else {
+        // Join community
+        await axios.post(
+          `http://192.168.0.24:8080/api/v1/communities/${communityId}/participants`,
+          {},
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setIsMember(true);
+        Alert.alert('Success', 'Successfully joined the community!');
+      }
+    } catch (error: any) {
+      console.error('Operation failed:', error.response?.data || error);
+      Alert.alert('Error', error.response?.data?.error?.message || 'Operation failed. Please try again.');
+    }
   };
 
   const handleChatPress = () => {
@@ -112,15 +188,18 @@ const CommunityDetails = () => {
 
         <View style={styles.actionButtons}>
           <TouchableOpacity 
-            style={[styles.button, isJoined ? styles.leaveButton : styles.joinButton]} 
-            onPress={handleJoinLeave}
+            style={[
+              styles.button, 
+              isMember ? styles.leaveButton : styles.joinButton
+            ]} 
+            onPress={() => handleJoinCommunity(id)}
           >
             <Text style={styles.buttonText}>
-              {isJoined ? 'Leave Community' : 'Join Community'}
+              {isMember ? 'Leave Community' : 'Join Community'}
             </Text>
           </TouchableOpacity>
 
-          {isJoined && (
+          {isMember && (
             <TouchableOpacity 
               style={[styles.button, styles.chatButton]} 
               onPress={handleChatPress}
