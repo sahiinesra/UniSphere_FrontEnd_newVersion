@@ -181,9 +181,31 @@ export default function Communities() {
   };
 
   //delete community
-  const handleDeleteCommunity = (communityId: string) => {
-    setCommunities(prev => prev.filter(c => c.id !== communityId));
-    // TODO: Implement delete community functionality with backend
+  const handleDeleteCommunity = async (communityId: string) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      await axios.delete(
+        `http://192.168.0.24:8080/api/v1/communities/${communityId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // Update local state after successful deletion
+      setCommunities(prev => prev.filter(c => c.id !== communityId));
+      Alert.alert('Success', 'Community deleted successfully!');
+    } catch (error: any) {
+      console.error('Failed to delete community:', error.response?.data || error);
+      Alert.alert('Error', 'Failed to delete community. Please try again.');
+    }
   };
 
   const displayedCommunities = showMyCommunities
