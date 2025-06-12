@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack } from 'expo-router';
@@ -99,6 +99,7 @@ const initialNotes: Note[] = [
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -335,6 +336,153 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  // AI Button Styles
+  aiContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+    backgroundColor: colors.background,
+    zIndex: 1,
+  },
+  aiButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+  },
+  aiButton: {
+    backgroundColor: '#2196F3',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+  },
+  permanentSpeechBubble: {
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: '#000000',
+    width: 180,
+    marginRight: 15,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+    position: 'relative',
+  },
+  permanentSpeechBubbleText: {
+    fontSize: 13,
+    color: '#000000',
+    textAlign: 'center',
+  },
+  speechBubbleTriangle: {
+    position: 'absolute',
+    right: -15,
+    top: 15,
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 15,
+    borderRightWidth: 15,
+    borderBottomWidth: 15,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#000000',
+    transform: [{ rotate: '90deg' }],
+  },
+  speechBubbleTriangleInner: {
+    position: 'absolute',
+    right: -11,
+    top: 15,
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 11,
+    borderRightWidth: 11,
+    borderBottomWidth: 11,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#FFFFFF',
+    transform: [{ rotate: '90deg' }],
+  },
+  aiModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+  },
+  aiSpeechBubble: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: '#000000',
+    margin: 20,
+    marginTop: 80,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+  },
+  aiSpeechBubbleText: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 10,
+  },
+  aiDescriptionInput: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 15,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  aiModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  aiModalButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  aiModalButtonCancel: {
+    backgroundColor: '#FF3B30',
+  },
+  aiModalButtonCreate: {
+    backgroundColor: '#2196F3',
+  },
+  aiModalButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 });
 
 export default function ClassNotes() {
@@ -360,6 +508,10 @@ export default function ClassNotes() {
     departmentId: '',
     noteId: ''
   });
+
+  // Add new state variables for AI feature
+  const [isAiModalVisible, setAiModalVisible] = useState(false);
+  const [aiDescription, setAiDescription] = useState('');
 
   const getAccessToken = async () => {
     const token = await SecureStore.getItemAsync('accessToken');
@@ -392,7 +544,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.get(
-        'http://192.168.0.24:8080/api/v1/class-notes',
+        'http://10.22.123.129:8080/api/v1/class-notes',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -481,7 +633,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.post(
-        'http://192.168.0.24:8080/api/v1/class-notes',
+        'http://10.22.123.129:8080/api/v1/class-notes',
         formDataObj,
         {
           headers: {
@@ -668,92 +820,169 @@ export default function ClassNotes() {
     }
   };
 
+  // Add new function to handle AI note creation
+  const handleAiNoteCreate = () => {
+    // This will be implemented later when connecting to the backend
+    console.log('Creating AI note with description:', aiDescription);
+    // Reset and close modal
+    setAiDescription('');
+    setAiModalVisible(false);
+  };
+
   return (
     <>
-      <Stack.Screen options={{
+      <Stack.Screen options={{ 
         title: 'Class Notes',
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: colors.text,
+        },
       }} />
 
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for notes..."
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
-            <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
-          </View>
-
-          {/* Management Buttons - Only visible to authorized users */}
-          <View style={styles.managementButtons}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* AI Button and Permanent Speech Bubble */}
+        <View style={styles.aiContainer}>
+          <View style={styles.aiButtonContainer}>
+            <View style={styles.permanentSpeechBubble}>
+              <Text style={styles.permanentSpeechBubbleText}>
+                Need help with notes? Let me assist you!
+              </Text>
+              <View style={styles.speechBubbleTriangle} />
+              <View style={styles.speechBubbleTriangleInner} />
+            </View>
             <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setCreateModalVisible(true);
-              }}
+              style={styles.aiButton}
+              onPress={() => setAiModalVisible(true)}
             >
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Create New</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteModalVisible(true);
-              }}
-            >
-              <Ionicons name="trash" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete Note</Text>
+              <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Class Notes List */}
-          {classNotes.map(note => (
-            <View key={note.id} style={styles.card}>
-              <View style={styles.noteHeader}>
-                <View>
-                  <Text style={styles.noteTitle}>{note.title}</Text>
-                  <Text style={styles.noteMeta}>
-                    {note.courseCode} | Dept ID: {note.departmentId}
-                  </Text>
-                </View>
+        {/* AI Modal */}
+        <Modal
+          visible={isAiModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setAiModalVisible(false)}
+        >
+          <View style={styles.aiModalContainer}>
+            <View style={styles.aiSpeechBubble}>
+              <Text style={styles.aiSpeechBubbleText}>
+                Hi! I can help you create class notes. Please describe the topic or content you would like me to create notes about.
+              </Text>
+              <TextInput
+                style={styles.aiDescriptionInput}
+                placeholder="Enter your description here..."
+                multiline={true}
+                value={aiDescription}
+                onChangeText={setAiDescription}
+              />
+              <View style={styles.aiModalButtons}>
                 <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => initUpdateForm(note)}
+                  style={[styles.aiModalButton, styles.aiModalButtonCancel]}
+                  onPress={() => {
+                    setAiDescription('');
+                    setAiModalVisible(false);
+                  }}
                 >
-                  <Ionicons name="pencil" size={20} color="#2196F3" />
+                  <Text style={styles.aiModalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.aiModalButton, styles.aiModalButtonCreate]}
+                  onPress={handleAiNoteCreate}
+                >
+                  <Text style={styles.aiModalButtonText}>Create</Text>
                 </TouchableOpacity>
               </View>
-
-              {Array.isArray(note.files) && note.files.length > 0 && (
-                <View style={styles.filesContainer}>
-                  <Text style={styles.filesHeader}>Note Files:</Text>
-                  {note.files.map((file: NoteFile) => (
-                    <TouchableOpacity
-                      key={file.id}
-                      style={styles.fileItem}
-                      onPress={() => handleFileOpen(file.id)}
-                    >
-                      <Ionicons name="document" size={16} color="#2196F3" />
-                      <Text style={[styles.fileName, { color: '#2196F3', textDecorationLine: 'underline' }]}>
-                        {file.name}
-                      </Text>
-                      <Text style={styles.fileId}>ID: {file.id}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <Text style={styles.noteId}>Note ID: {note.id}</Text>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </View>
+        </Modal>
+
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.container}>
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search for notes..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+              />
+              <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
+            </View>
+
+            {/* Management Buttons - Only visible to authorized users */}
+            <View style={styles.managementButtons}>
+              <TouchableOpacity
+                style={styles.managementButton}
+                onPress={() => {
+                  resetForm();
+                  setCreateModalVisible(true);
+                }}
+              >
+                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Text style={styles.managementButtonText}>Create New</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.managementButton}
+                onPress={() => {
+                  resetForm();
+                  setDeleteModalVisible(true);
+                }}
+              >
+                <Ionicons name="trash" size={20} color="#fff" />
+                <Text style={styles.managementButtonText}>Delete Note</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Class Notes List */}
+            {classNotes.map(note => (
+              <View key={note.id} style={styles.card}>
+                <View style={styles.noteHeader}>
+                  <View>
+                    <Text style={styles.noteTitle}>{note.title}</Text>
+                    <Text style={styles.noteMeta}>
+                      {note.courseCode} | Dept ID: {note.departmentId}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => initUpdateForm(note)}
+                  >
+                    <Ionicons name="pencil" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                </View>
+
+                {Array.isArray(note.files) && note.files.length > 0 && (
+                  <View style={styles.filesContainer}>
+                    <Text style={styles.filesHeader}>Note Files:</Text>
+                    {note.files.map((file: NoteFile) => (
+                      <TouchableOpacity
+                        key={file.id}
+                        style={styles.fileItem}
+                        onPress={() => handleFileOpen(file.id)}
+                      >
+                        <Ionicons name="document" size={16} color="#2196F3" />
+                        <Text style={[styles.fileName, { color: '#2196F3', textDecorationLine: 'underline' }]}>
+                          {file.name}
+                        </Text>
+                        <Text style={styles.fileId}>ID: {file.id}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={styles.noteId}>Note ID: {note.id}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
 
       {/* Create Note Modal */}
       <Modal
