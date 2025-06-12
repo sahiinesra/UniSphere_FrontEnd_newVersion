@@ -1,10 +1,11 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Linking,
@@ -49,7 +50,6 @@ interface FormData {
   title: string;
   description: string;
   content: string;
-  departmentId: string;
   noteId: string;
 }
 
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingBottom: 100, // Add extra padding for bottom tabs
+    paddingBottom: 100,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -253,10 +253,12 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#000000',
     borderRadius: 10,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 20,
-    width: '100%',
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 24,
@@ -265,42 +267,171 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F5F5F5',
     borderWidth: 2,
-    borderColor: '#CCCCCC',
+    borderColor: '#000000',
     borderRadius: 5,
-    padding: 12,
+    padding: 10,
     marginBottom: 15,
-    fontSize: 16,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 20,
   },
   modalButton: {
-    padding: 12,
+    flex: 1,
+    backgroundColor: '#2196F3',
+    borderWidth: 2,
+    borderColor: '#000000',
     borderRadius: 5,
-    minWidth: '45%',
-    alignItems: 'center',
+    padding: 10,
+    marginHorizontal: 5,
   },
   modalButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 16,
+    textAlign: 'center',
   },
   cancelButton: {
-    backgroundColor: '#888888',
+    backgroundColor: '#FF3B30',
   },
-  submitButton: {
+  contentContainer: {
+    marginBottom: 15,
+  },
+  contentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiHelpButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#000000',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  aiHelpText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  contentInput: {
+    height: 150,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 10,
+    padding: 10,
+    textAlignVertical: 'top',
+  },
+  aiDescriptionModal: {
+    backgroundColor: '#FFFFFF',
+    marginTop: 50,
+    marginHorizontal: 20,
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  aiDescriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  aiDescriptionIcon: {
+    backgroundColor: '#2196F3',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  aiDescriptionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  aiDescriptionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  aiDescriptionInput: {
+    height: 120,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+    backgroundColor: '#F5F5F5',
+    textAlignVertical: 'top',
+  },
+  aiDescriptionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  aiDescriptionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  aiDescriptionButtonCancel: {
+    backgroundColor: '#DDD',
+  },
+  aiDescriptionButtonGenerate: {
     backgroundColor: '#2196F3',
   },
-  deleteButton: {
-    backgroundColor: '#FF3B30',
+  aiDescriptionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  noteTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 5,
+  },
+  noteMeta: {
+    fontSize: 15,
+    color: '#2196F3',
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   uploadFileButton: {
     backgroundColor: '#2196F3',
@@ -319,173 +450,22 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 14,
   },
-  noteTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 5,
-  },
-  noteMeta: {
-    fontSize: 15,
-    color: '#2196F3',
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  // AI Button Styles
-  aiContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: colors.background,
-    zIndex: 1,
-  },
-  aiButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
-  },
-  aiButton: {
+  submitButton: {
     backgroundColor: '#2196F3',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000000',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 4,
-      height: 4,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
   },
-  permanentSpeechBubble: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 15,
-    borderWidth: 3,
-    borderColor: '#000000',
-    width: 180,
-    marginRight: 15,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 4,
-      height: 4,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-    position: 'relative',
-  },
-  permanentSpeechBubbleText: {
-    fontSize: 13,
-    color: '#000000',
-    textAlign: 'center',
-  },
-  speechBubbleTriangle: {
-    position: 'absolute',
-    right: -15,
-    top: 15,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 15,
-    borderRightWidth: 15,
-    borderBottomWidth: 15,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#000000',
-    transform: [{ rotate: '90deg' }],
-  },
-  speechBubbleTriangleInner: {
-    position: 'absolute',
-    right: -11,
-    top: 15,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 11,
-    borderRightWidth: 11,
-    borderBottomWidth: 11,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#FFFFFF',
-    transform: [{ rotate: '90deg' }],
-  },
-  aiModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-start',
-  },
-  aiSpeechBubble: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#000000',
-    margin: 20,
-    marginTop: 80,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 4,
-      height: 4,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-  },
-  aiSpeechBubbleText: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 10,
-  },
-  aiDescriptionInput: {
-    backgroundColor: '#F5F5F5',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 10,
-    marginBottom: 15,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  aiModalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  aiModalButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#000000',
-  },
-  aiModalButtonCancel: {
+  deleteButton: {
     backgroundColor: '#FF3B30',
   },
-  aiModalButtonCreate: {
-    backgroundColor: '#2196F3',
-  },
-  aiModalButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
 });
 
 export default function ClassNotes() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
   const [notes, setNotes] = useState<Note[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -505,13 +485,13 @@ export default function ClassNotes() {
     title: '',
     description: '',
     content: '',
-    departmentId: '',
     noteId: ''
   });
 
-  // Add new state variables for AI feature
-  const [isAiModalVisible, setAiModalVisible] = useState(false);
+  // Add AI states
+  const [isAiDescriptionModalVisible, setAiDescriptionModalVisible] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   const getAccessToken = async () => {
     const token = await SecureStore.getItemAsync('accessToken');
@@ -619,7 +599,6 @@ export default function ClassNotes() {
       const formDataObj = new FormData();
       formDataObj.append('content', formData.content);
       formDataObj.append('courseCode', formData.courseCode);
-      formDataObj.append('departmentId', formData.departmentId);
       formDataObj.append('description', formData.description);
       formDataObj.append('title', formData.title);
       formDataObj.append('userId', '1'); 
@@ -754,7 +733,6 @@ export default function ClassNotes() {
       courseCode: note.courseCode,
       title: note.title,
       description: note.description,
-      departmentId: note.departmentId,
       content: '',
       noteId: note.id,
     });
@@ -768,7 +746,6 @@ export default function ClassNotes() {
       title: '',
       description: '',
       content: '',
-      departmentId: '',
       noteId: ''
     });
     setCurrentNote(null);
@@ -820,14 +797,45 @@ export default function ClassNotes() {
     }
   };
 
-  // Add new function to handle AI note creation
-  const handleAiNoteCreate = () => {
-    // This will be implemented later when connecting to the backend
-    console.log('Creating AI note with description:', aiDescription);
-    // Reset and close modal
-    setAiDescription('');
-    setAiModalVisible(false);
+  // Function to handle AI content generation
+  const handleGenerateContent = async () => {
+    if (!aiDescription.trim()) {
+      Alert.alert('Error', 'Please enter a description for the content.');
+      return;
+    }
+
+    setIsGeneratingContent(true);
+    try {
+      // This will be implemented later when connecting to the backend
+      // For now, just simulate a delay and set some sample content
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Sample content - this will be replaced with actual AI-generated content
+      const sampleContent = "This is a sample AI-generated content. It will be replaced with actual AI-generated content when the backend is connected. The content will be limited to 500 words and will be based on the user's description.";
+      
+      setFormData(prev => ({
+        ...prev,
+        content: sampleContent
+      }));
+      setAiDescription('');
+      setAiDescriptionModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate content. Please try again.');
+      console.error('Error generating content:', error);
+    } finally {
+      setIsGeneratingContent(false);
+    }
   };
+
+  useEffect(() => {
+    // Update content when params change
+    if (params.content) {
+      setFormData(prev => ({
+        ...prev,
+        content: params.content as string
+      }));
+    }
+  }, [params.content]);
 
   return (
     <>
@@ -843,65 +851,6 @@ export default function ClassNotes() {
       }} />
 
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        {/* AI Button and Permanent Speech Bubble */}
-        <View style={styles.aiContainer}>
-          <View style={styles.aiButtonContainer}>
-            <View style={styles.permanentSpeechBubble}>
-              <Text style={styles.permanentSpeechBubbleText}>
-                Need help with notes? Let me assist you!
-              </Text>
-              <View style={styles.speechBubbleTriangle} />
-              <View style={styles.speechBubbleTriangleInner} />
-            </View>
-            <TouchableOpacity
-              style={styles.aiButton}
-              onPress={() => setAiModalVisible(true)}
-            >
-              <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* AI Modal */}
-        <Modal
-          visible={isAiModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setAiModalVisible(false)}
-        >
-          <View style={styles.aiModalContainer}>
-            <View style={styles.aiSpeechBubble}>
-              <Text style={styles.aiSpeechBubbleText}>
-                Hi! I can help you create class notes. Please describe the topic or content you would like me to create notes about.
-              </Text>
-              <TextInput
-                style={styles.aiDescriptionInput}
-                placeholder="Enter your description here..."
-                multiline={true}
-                value={aiDescription}
-                onChangeText={setAiDescription}
-              />
-              <View style={styles.aiModalButtons}>
-                <TouchableOpacity
-                  style={[styles.aiModalButton, styles.aiModalButtonCancel]}
-                  onPress={() => {
-                    setAiDescription('');
-                    setAiModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.aiModalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.aiModalButton, styles.aiModalButtonCreate]}
-                  onPress={handleAiNoteCreate}
-                >
-                  <Text style={styles.aiModalButtonText}>Create</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
         <ScrollView style={styles.scrollView}>
           <View style={styles.container}>
             {/* Search Bar */}
@@ -1011,7 +960,7 @@ export default function ClassNotes() {
                     onChangeText={(text) => setFormData({ ...formData, courseCode: text })}
                   />
 
-                  <Text style={styles.inputLabel}>Title (e.g. Week 1 - Introduction to Programming)</Text>
+                  <Text style={styles.inputLabel}>Title</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -1019,7 +968,7 @@ export default function ClassNotes() {
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                   />
 
-                  <Text style={styles.inputLabel}>Description (Brief summary of the note content)</Text>
+                  <Text style={styles.inputLabel}>Description</Text>
                   <TextInput
                     style={[styles.input, { height: 50, textAlignVertical: 'top', paddingTop: 10 }]}
                     placeholder=""
@@ -1028,23 +977,26 @@ export default function ClassNotes() {
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                   />
 
-                  <Text style={styles.inputLabel}>Content (Detailed note content)</Text>
-                  <TextInput
-                    style={[styles.input, { height: 60, textAlignVertical: 'top', paddingTop: 10 }]}
-                    placeholder=""
-                    multiline
-                    value={formData.content}
-                    onChangeText={(text) => setFormData({ ...formData, content: text })}
-                  />
-
-                  <Text style={styles.inputLabel}>Department ID (e.g. 1 for Computer Science)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder=""
-                    value={formData.departmentId}
-                    onChangeText={(text) => setFormData({ ...formData, departmentId: text })}
-                    keyboardType="numeric"
-                  />
+                  <View style={styles.contentContainer}>
+                    <View style={styles.contentHeader}>
+                      <Text style={styles.inputLabel}>Content</Text>
+                      <TouchableOpacity
+                        style={styles.aiHelpButton}
+                        onPress={() => setAiDescriptionModalVisible(true)}
+                      >
+                        <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
+                        <Text style={styles.aiHelpText}>Get AI Help</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.contentInput}
+                      placeholder="Enter your note content here..."
+                      multiline
+                      scrollEnabled
+                      value={formData.content}
+                      onChangeText={(text) => setFormData({ ...formData, content: text })}
+                    />
+                  </View>
 
                   <TouchableOpacity
                     style={styles.uploadFileButton}
@@ -1125,14 +1077,26 @@ export default function ClassNotes() {
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                   />
 
-                  <Text style={styles.inputLabel}>Content</Text>
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder=""
-                    multiline
-                    value={formData.content}
-                    onChangeText={(text) => setFormData({ ...formData, content: text })}
-                  />
+                  <View style={styles.contentContainer}>
+                    <View style={styles.contentHeader}>
+                      <Text style={styles.inputLabel}>Content</Text>
+                      <TouchableOpacity
+                        style={styles.aiHelpButton}
+                        onPress={() => setAiDescriptionModalVisible(true)}
+                      >
+                        <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
+                        <Text style={styles.aiHelpText}>Get AI Help</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={styles.contentInput}
+                      placeholder="Enter your note content here..."
+                      multiline
+                      scrollEnabled
+                      value={formData.content}
+                      onChangeText={(text) => setFormData({ ...formData, content: text })}
+                    />
+                  </View>
 
                   <View style={styles.modalButtons}>
                     <TouchableOpacity
@@ -1209,6 +1173,64 @@ export default function ClassNotes() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* AI Description Modal */}
+      <Modal
+        visible={isAiDescriptionModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAiDescriptionModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start' }}>
+          <View style={styles.aiDescriptionModal}>
+            {isGeneratingContent ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2196F3" />
+                <Text style={styles.loadingText}>Generating your content...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.aiDescriptionHeader}>
+                  <View style={styles.aiDescriptionIcon}>
+                    <MaterialCommunityIcons name="star-four-points" size={24} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.aiDescriptionTitle}>AI Content Generator</Text>
+                </View>
+                
+                <Text style={styles.aiDescriptionSubtitle}>
+                  Describe what you want me to write about. I will generate relevant content for your notes (max 500 words).
+                </Text>
+
+                <TextInput
+                  style={styles.aiDescriptionInput}
+                  placeholder="Example: Write about the basic concepts of object-oriented programming..."
+                  multiline
+                  value={aiDescription}
+                  onChangeText={setAiDescription}
+                />
+
+                <View style={styles.aiDescriptionButtons}>
+                  <TouchableOpacity
+                    style={[styles.aiDescriptionButton, styles.aiDescriptionButtonCancel]}
+                    onPress={() => {
+                      setAiDescription('');
+                      setAiDescriptionModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.aiDescriptionButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.aiDescriptionButton, styles.aiDescriptionButtonGenerate]}
+                    onPress={handleGenerateContent}
+                  >
+                    <Text style={styles.aiDescriptionButtonText}>Generate</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
       </Modal>
     </>
   );
