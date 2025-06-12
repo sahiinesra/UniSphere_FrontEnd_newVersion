@@ -3,53 +3,104 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+// API configuration
+const API_URL = 'http://10.22.123.129:8080';
+
+interface CommunityDetails {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  memberCount: number;
+  abbreviation: string;
+  profilePhotoUrl?: string;
+  leadId?: string;
+}
 
 const CommunityDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
-  const [hasProfilePhoto, setHasProfilePhoto] = useState(true);
-  const [logoUri, setLogoUri] = useState('https://placeholder.com/150');
+  const [hasProfilePhoto, setHasProfilePhoto] = useState(false);
+  const [communityData, setCommunityData] = useState<CommunityDetails | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const getAccessToken = async () => {
     const token = await SecureStore.getItemAsync('accessToken');
     return token;
   };
 
-  // Check if user is a member of this community
+  // Fetch user profile to get user id
+  const fetchUserProfile = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return null;
+
+      const response = await axios.get(
+        'http://10.22.123.129:8080/api/v1/users/profile',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('User Profile Response:', response.data);
+      const userData = response.data.data;
+      
+      if (!userData || userData.id === undefined) {
+        console.error('User data or id is missing:', userData);
+        return null;
+      }
+
+      const idStr = userData.id.toString();
+      console.log('Setting user id to:', idStr);
+      setCurrentUserId(idStr);
+      return idStr;
+    } catch (error: any) {
+      console.error('Failed to fetch user profile:', error.response?.data || error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const checkMembership = async () => {
+    const initializeData = async () => {
+      setLoading(true);
       try {
-        const token = await getAccessToken();
-        if (!token) {
-          Alert.alert('Error', 'Authentication token not found');
+        const userIdResult = await fetchUserProfile();
+        if (!userIdResult) {
+          console.error('Failed to get user ID');
+          Alert.alert('Error', 'Failed to load user data');
           return;
         }
 
-        const response = await axios.get(
-          `http://192.168.0.24:8080/api/v1/communities/${id}/participants/check`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        // Response format: { data: { additionalProp1: boolean, ... }, timestamp: string }
-        const membershipData = response.data.data;
-        const isMemberValue = Object.values(membershipData).some(value => value === true);
-        setIsMember(isMemberValue);
-      } catch (error: any) {
-        console.error('Failed to check membership:', error.response?.data || error);
+        await Promise.all([
+          fetchCommunityDetails(),
+          checkMembership()
+        ]);
+      } catch (error) {
+        console.error('Initialization error:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkMembership();
-  }, [id]);
+    initializeData();
+  }, [id]); // Only re-run when community ID changes
 
-  const handleJoinCommunity = async (communityId: string) => {
+  // Re-check membership when currentUserId changes
+  useEffect(() => {
+    if (currentUserId) {
+      checkMembership();
+    }
+  }, [currentUserId]);
+
+  // Fetch community details
+  const fetchCommunityDetails = async () => {
     try {
       const token = await getAccessToken();
       if (!token) {
@@ -57,10 +108,83 @@ const CommunityDetails = () => {
         return;
       }
 
+      const response = await axios.get(
+        `${API_URL}/api/v1/communities/${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = response.data.data;
+      console.log('Community details:', data);
+
+      setCommunityData({
+        ...data,
+        memberCount: data.participantCount || 0
+      });
+      setHasProfilePhoto(!!data.profilePhotoUrl);
+    } catch (error: any) {
+      console.error('Failed to fetch community details:', error.response?.data || error);
+      Alert.alert('Error', 'Failed to load community details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check if user is a member of the community
+  const checkMembership = async () => {
+    try {
+      if (!currentUserId || !id) {
+        console.log('Membership Check - Missing Data:', { currentUserId, communityId: id });
+        return;
+      }
+
+      const token = await getAccessToken();
+      if (!token) return;
+
+      console.log('Checking membership for:', {
+        userId: currentUserId,
+        communityId: id
+      });
+
+      const response = await axios.get(
+        `${API_URL}/api/v1/communities/${id}/participants/check?userId=${currentUserId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('Membership check response:', response.data);
+      const isMemberResult = response.data.data.isParticipant === true;
+      console.log('Is member result:', isMemberResult);
+      setIsMember(isMemberResult);
+    } catch (error: any) {
+      console.error('Failed to check membership:', error.response?.data || error);
+      setIsMember(false);
+    }
+  };
+
+  // Handle joining/leaving the community
+  const handleMembershipAction = async () => {
+    try {
+      if (!currentUserId || !id) {
+        console.log('Missing user id or community id for membership action');
+        return;
+      }
+
+      const token = await getAccessToken();
+      if (!token) return;
+
       if (isMember) {
         // Leave community
         await axios.delete(
-          `http://192.168.0.24:8080/api/v1/communities/${communityId}/participants/me`,
+          `${API_URL}/api/v1/communities/${id}/participants/${currentUserId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -68,13 +192,13 @@ const CommunityDetails = () => {
             },
           }
         );
-        setIsMember(false);
-        Alert.alert('Success', 'Successfully left the community!');
+        console.log('Successfully left the community');
+        Alert.alert('Success', 'You have left the community');
       } else {
         // Join community
         await axios.post(
-          `http://192.168.0.24:8080/api/v1/communities/${communityId}/participants`,
-          {},
+          `${API_URL}/api/v1/communities/${id}/participants`,
+          { userId: currentUserId },
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -82,37 +206,51 @@ const CommunityDetails = () => {
             },
           }
         );
-        setIsMember(true);
-        Alert.alert('Success', 'Successfully joined the community!');
+        console.log('Successfully joined the community');
+        Alert.alert('Success', 'You have joined the community');
       }
+
+      // Refresh membership status and community details
+      await checkMembership();
+      await fetchCommunityDetails();
     } catch (error: any) {
-      console.error('Operation failed:', error.response?.data || error);
-      Alert.alert('Error', error.response?.data?.error?.message || 'Operation failed. Please try again.');
+      console.error('Failed to handle membership action:', error.response?.data || error);
+      Alert.alert(
+        'Error',
+        isMember 
+          ? 'Failed to leave the community. Please try again.'
+          : 'Failed to join the community. Please try again.'
+      );
     }
   };
 
   const handleChatPress = () => {
+    if (!communityData) return;
+    
     router.push({
       pathname: '/screens/CommunityChat',
       params: { 
         communityId: id,
-        communityName: 'Community Name', // Replace with actual community name
-        memberCount: 42 // Replace with actual member count
+        communityName: communityData.name,
+        memberCount: communityData.memberCount
       }
     });
   };
 
   const handleUpdatePhoto = async () => {
     try {
-      // Request permission
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        alert('Permission to access camera roll is required!');
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
         return;
       }
 
-      // Pick the image
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -120,48 +258,106 @@ const CommunityDetails = () => {
         quality: 1,
       });
 
-      if (!result.canceled) {
-        setLogoUri(result.assets[0].uri);
-        setHasProfilePhoto(true);
-        // TODO: Upload the image to backend
+      if (!result.canceled && result.assets[0]) {
+        const selectedAsset = result.assets[0];
+        const extension = selectedAsset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+        
+        const formData = new FormData();
+        formData.append('profilePhoto', {
+          uri: selectedAsset.uri,
+          type: `image/${extension}`,
+          name: `profile.${extension}`,
+        } as any);
+
+        await axios.post(
+          `${API_URL}/api/v1/communities/${id}/photo`,
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        // Refresh community details to get the new photo URL
+        await fetchCommunityDetails();
+        Alert.alert('Success', 'Community photo updated successfully!');
       }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      alert('Failed to pick image');
+    } catch (error: any) {
+      console.error('Error updating photo:', error);
+      Alert.alert('Error', 'Failed to update community photo');
     }
   };
 
-  const handleDeletePhoto = () => {
-    setHasProfilePhoto(false);
-    setLogoUri('https://placeholder.com/150');
-    // TODO: Implement photo deletion functionality with backend
+  const handleDeletePhoto = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      await axios.delete(
+        `${API_URL}/api/v1/communities/${id}/photo`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      setHasProfilePhoto(false);
+      // Refresh community details
+      await fetchCommunityDetails();
+      Alert.alert('Success', 'Community photo deleted successfully!');
+    } catch (error: any) {
+      console.error('Error deleting photo:', error);
+      Alert.alert('Error', 'Failed to delete community photo');
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
+  }
+
+  if (!communityData) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>Failed to load community details</Text>
+      </View>
+    );
+  }
 
   return (
     <>
       <Stack.Screen options={{ 
-        title: 'Community Details',
+        title: communityData.name,
       }} />
       
       <View style={styles.container}>
         <View style={styles.profileSection}>
-          {hasProfilePhoto ? (
-            <View style={styles.logoContainer}>
+          <View style={styles.logoContainer}>
+            {hasProfilePhoto && communityData.profilePhotoUrl ? (
               <Image
-                source={{ uri: logoUri }}
+                source={{ uri: communityData.profilePhotoUrl }}
                 style={styles.logo}
                 resizeMode="cover"
               />
-            </View>
-          ) : (
-            <View style={[styles.logoContainer, styles.noLogo]}>
-              <Text>No Logo</Text>
-            </View>
-          )}
+            ) : (
+              <View style={[styles.logoContainer, styles.noLogo]}>
+                <Text style={styles.noLogoText}>{communityData.abbreviation}</Text>
+              </View>
+            )}
+          </View>
           
           <View style={styles.photoButtons}>
             <TouchableOpacity 
-              style={styles.button} 
+              style={[styles.photoButton, styles.updateButton]} 
               onPress={handleUpdatePhoto}
             >
               <Text style={styles.buttonText}>Update Logo</Text>
@@ -169,7 +365,7 @@ const CommunityDetails = () => {
             
             {hasProfilePhoto && (
               <TouchableOpacity 
-                style={[styles.button, styles.deleteButton]} 
+                style={[styles.photoButton, styles.deleteButton]} 
                 onPress={handleDeletePhoto}
               >
                 <Text style={styles.buttonText}>Delete Logo</Text>
@@ -179,11 +375,9 @@ const CommunityDetails = () => {
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.title}>Community Name</Text>
-          <Text style={styles.description}>
-            This is the community description. It provides information about the
-            community&apos;s purpose, activities, and other relevant details.
-          </Text>
+          <Text style={styles.title}>{communityData.name}</Text>
+          <Text style={styles.subtitle}>{communityData.category} • {communityData.memberCount} Members</Text>
+          <Text style={styles.description}>{communityData.description}</Text>
         </View>
 
         <View style={styles.actionButtons}>
@@ -192,13 +386,16 @@ const CommunityDetails = () => {
               styles.button, 
               isMember ? styles.leaveButton : styles.joinButton
             ]} 
-            onPress={() => handleJoinCommunity(id)}
+            onPress={handleMembershipAction}
           >
             <Text style={styles.buttonText}>
-              {isMember ? 'Leave Community' : 'Join Community'}
+              {isMember 
+                ? "Leave from Community"
+                : "Join Community"
+              }
             </Text>
           </TouchableOpacity>
-
+          
           {isMember && (
             <TouchableOpacity 
               style={[styles.button, styles.chatButton]} 
@@ -208,6 +405,15 @@ const CommunityDetails = () => {
             </TouchableOpacity>
           )}
         </View>
+
+        {__DEV__ && (
+          <View style={styles.debugInfo}>
+            <Text>Debug Info:</Text>
+            <Text>User ID: {currentUserId}</Text>
+            <Text>Community ID: {id}</Text>
+            <Text>Is Member: {isMember ? 'Yes' : 'No'}</Text>
+          </View>
+        )}
       </View>
     </>
   );
@@ -218,6 +424,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#FFD700',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
   },
   profileSection: {
     alignItems: 'center',
@@ -231,7 +450,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#000000',
     backgroundColor: '#FFFFFF',
-    marginBottom: 10,
+    marginBottom: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -244,10 +463,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  noLogoText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
   photoButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 10,
+    paddingHorizontal: 20,
+    width: '100%',
+  },
+  photoButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000000',
+    maxWidth: 150,
+  },
+  updateButton: {
+    backgroundColor: '#4CAF50',
+  },
+  deleteButton: {
+    backgroundColor: '#f44336',
   },
   infoSection: {
     backgroundColor: '#FFFFFF',
@@ -260,11 +501,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#000000',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
     marginBottom: 10,
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
+    color: '#000000',
+  },
+  actionButtons: {
+    width: '100%',
+    gap: 10,
   },
   button: {
     padding: 15,
@@ -272,6 +524,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#000000',
+    marginBottom: 10,
+    width: '100%'
   },
   joinButton: {
     backgroundColor: '#4CAF50',
@@ -279,20 +533,20 @@ const styles = StyleSheet.create({
   leaveButton: {
     backgroundColor: '#f44336',
   },
-  deleteButton: {
-    backgroundColor: '#f44336',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  actionButtons: {
-    gap: 10,
-  },
   chatButton: {
     backgroundColor: '#007AFF',
   },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  debugInfo: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  }
 });
 
 export default CommunityDetails; 

@@ -601,7 +601,8 @@ export default function ClassNotes() {
       formDataObj.append('courseCode', formData.courseCode);
       formDataObj.append('description', formData.description);
       formDataObj.append('title', formData.title);
-      formDataObj.append('userId', '1'); 
+      formDataObj.append('departmentId', '1'); // Default department ID
+      formDataObj.append('userId', '1');
 
       if (selectedFile) {
         formDataObj.append('files', {

@@ -82,7 +82,7 @@ export default function Communities() {
       }
 
       const response = await axios.get(
-        `http://192.168.0.24:8080/api/v1/communities?page=${page}&pageSize=${size}`,
+        `http://10.22.123.129:8080/api/v1/communities?page=${page}&pageSize=${size}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -93,6 +93,7 @@ export default function Communities() {
 
       const communities = response.data.data.communities.map((community: any) => ({
         ...community,
+        memberCount: community.participantCount || 0
       }));
 
       console.log('Fetched Communities:', JSON.stringify(communities, null, 2));
@@ -143,7 +144,7 @@ export default function Communities() {
       }
 
       const response = await axios.put(
-        `http://192.168.0.24:8080/api/v1/communities/${selectedCommunity.id}`,
+        `http://10.22.123.129:8080/api/v1/communities/${selectedCommunity.id}`,
         {
           name: updateFormData.name.trim(),
           abbreviation: updateFormData.abbreviation.trim(),
@@ -190,7 +191,7 @@ export default function Communities() {
       }
 
       await axios.delete(
-        `http://192.168.0.24:8080/api/v1/communities/${communityId}`,
+        `http://10.22.123.129:8080/api/v1/communities/${communityId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

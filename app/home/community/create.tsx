@@ -3,12 +3,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+// API configuration
+const API_URL = 'http://10.22.123.129:8080';
 
 export default function CreateCommunity() {
   const router = useRouter();
   const [communityName, setCommunityName] = useState('');
   const [communityAbbreviation, setCommunityAbbreviation] = useState('');
+  const [category, setCategory] = useState('ACADEMIC');
   const [logoUri, setLogoUri] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +45,7 @@ export default function CreateCommunity() {
   };
 
   const handleCreate = async () => {
+    // Validate inputs
     if (!communityName.trim()) {
       Alert.alert('Error', 'Please enter a community name');
       return;
@@ -62,8 +67,7 @@ export default function CreateCommunity() {
       const formData = new FormData();
       formData.append('name', communityName.trim());
       formData.append('abbreviation', communityAbbreviation.trim());
-      formData.append('description', 'Community Description');
-      formData.append('category', 'ACADEMIC');
+      formData.append('category', category);
 
       if (logoUri) {
         // Get file extension from URI
@@ -85,11 +89,12 @@ export default function CreateCommunity() {
       console.log('Creating community with data:', {
         name: communityName,
         abbreviation: communityAbbreviation,
+        category,
         hasPhoto: !!logoUri
       });
 
       const response = await axios.post(
-        'http://192.168.0.24:8080/api/v1/communities',
+        `${API_URL}/api/v1/communities`,
         formData,
         {
           headers: {
@@ -101,15 +106,18 @@ export default function CreateCommunity() {
       );
 
       console.log('Community created:', response.data);
-      Alert.alert('Success', 'Community created successfully!');
-      router.back();
+      Alert.alert(
+        'Success', 
+        'Community created successfully!',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
 
     } catch (error: any) {
       console.error('Failed to create community:', error.response?.data || error);
-      Alert.alert(
-        'Error', 
-        error.response?.data?.message || 'Failed to create community. Please try again.'
-      );
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error?.message
+        || 'Failed to create community. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -121,7 +129,7 @@ export default function CreateCommunity() {
         title: 'Create Community',
       }} />
       
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         <View style={styles.form}>
           <Text style={styles.inputLabel}>Community Name</Text>
           <TextInput
@@ -170,7 +178,7 @@ export default function CreateCommunity() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </>
   );
 }
@@ -178,11 +186,11 @@ export default function CreateCommunity() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#FFD700',
   },
   form: {
     gap: 20,
+    padding: 20,
   },
   input: {
     backgroundColor: '#FFFFFF',
