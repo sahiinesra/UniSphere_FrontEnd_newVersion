@@ -181,10 +181,17 @@ const CommunityDetails = () => {
       const token = await getAccessToken();
       if (!token) return;
 
+      setLoading(true);
+
       if (isMember) {
         // Leave community
+        console.log('Attempting to leave community:', {
+          communityId: id,
+          userId: currentUserId
+        });
+
         await axios.delete(
-          `${API_URL}/api/v1/communities/${id}/participants/${currentUserId}`,
+          `${API_URL}/api/v1/communities/${id}/participants`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -192,10 +199,21 @@ const CommunityDetails = () => {
             },
           }
         );
+
         console.log('Successfully left the community');
+        setIsMember(false);
+        
+        // Refresh community details to update member count
+        await fetchCommunityDetails();
+        
         Alert.alert('Success', 'You have left the community');
       } else {
         // Join community
+        console.log('Attempting to join community:', {
+          communityId: id,
+          userId: currentUserId
+        });
+
         await axios.post(
           `${API_URL}/api/v1/communities/${id}/participants`,
           { userId: currentUserId },
@@ -206,21 +224,25 @@ const CommunityDetails = () => {
             },
           }
         );
+
         console.log('Successfully joined the community');
+        setIsMember(true);
+        
+        // Refresh community details to update member count
+        await fetchCommunityDetails();
+        
         Alert.alert('Success', 'You have joined the community');
       }
-
-      // Refresh membership status and community details
-      await checkMembership();
-      await fetchCommunityDetails();
     } catch (error: any) {
       console.error('Failed to handle membership action:', error.response?.data || error);
-      Alert.alert(
-        'Error',
-        isMember 
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error?.message
+        || (isMember 
           ? 'Failed to leave the community. Please try again.'
-          : 'Failed to join the community. Please try again.'
-      );
+          : 'Failed to join the community. Please try again.');
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
