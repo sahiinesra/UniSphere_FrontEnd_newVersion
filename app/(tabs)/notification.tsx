@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -18,7 +19,7 @@ const Notifications = () => {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://192.168.0.22:8000/scraping/scrape-announcements', {
+      const response = await axios.get('http://10.22.123.129:8000/scraping/scrape-announcements', {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -77,7 +78,17 @@ const Notifications = () => {
                 <Text style={styles.title}>{item.title}</Text>
                 <Text style={styles.date}>{item.date}</Text>
                 {item.location && (
-                  <Text style={styles.location}>{item.location}</Text>
+                  <TouchableOpacity 
+                    style={styles.locationContainer}
+                    onPress={() => {
+                      if (item.url) {
+                        Linking.openURL(item.url);
+                      }
+                    }}
+                  >
+                    <Ionicons name="location" size={16} color="#2196F3" />
+                    <Text style={styles.location}>{item.location}</Text>
+                  </TouchableOpacity>
                 )}
               </TouchableOpacity>
             ))
@@ -134,10 +145,15 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 4,
   },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   location: {
     fontSize: 14,
     color: '#2196F3',
     fontStyle: 'italic',
+    marginLeft: 4,
   },
   emptyState: {
     flex: 1,

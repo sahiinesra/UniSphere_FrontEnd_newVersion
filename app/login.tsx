@@ -19,7 +19,7 @@ import {
 
 // Axios instance configuration
 const api = axios.create({
-  baseURL: 'http://192.168.0.22:8080/api/v1',
+  baseURL: 'http://10.22.123.129:8080/api/v1',
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
