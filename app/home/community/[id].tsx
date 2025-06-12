@@ -406,13 +406,15 @@ const CommunityDetails = () => {
           <TouchableOpacity 
             style={[
               styles.button, 
-              isMember ? styles.leaveButton : styles.joinButton
+              isMember ? styles.leaveButton : styles.joinButton,
+              loading && styles.disabled
             ]} 
             onPress={handleMembershipAction}
+            disabled={loading}
           >
             <Text style={styles.buttonText}>
               {isMember 
-                ? "Leave from Community"
+                ? "Leave from Community" 
                 : "Join Community"
               }
             </Text>
@@ -427,15 +429,6 @@ const CommunityDetails = () => {
             </TouchableOpacity>
           )}
         </View>
-
-        {__DEV__ && (
-          <View style={styles.debugInfo}>
-            <Text>Debug Info:</Text>
-            <Text>User ID: {currentUserId}</Text>
-            <Text>Community ID: {id}</Text>
-            <Text>Is Member: {isMember ? 'Yes' : 'No'}</Text>
-          </View>
-        )}
       </View>
     </>
   );
@@ -563,11 +556,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  debugInfo: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+  disabled: {
+    backgroundColor: '#CCCCCC',
   }
 });
 
