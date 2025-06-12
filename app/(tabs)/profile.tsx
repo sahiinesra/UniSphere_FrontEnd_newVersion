@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
@@ -21,7 +22,7 @@ import {
 
 // Axios instance configuration
 const api = axios.create({
-  baseURL: 'http://192.168.0.24:8080/api/v1',
+  baseURL: 'http://10.22.123.129:8080/api/v1',
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
@@ -124,6 +125,8 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = ({
                 <Image
                   source={{ uri: photoUri }}
                   style={styles.profilePhotoEdit}
+                  contentFit="cover"
+                  transition={300}
                 />
               ) : (
                 <View style={styles.placeholderPhotoEdit}>
@@ -306,7 +309,7 @@ const Profile = () => {
           return;
         }
 
-        const response = await retryRequest(() => 
+        const profileResponse = await retryRequest(() => 
           api.get('/users/profile', {
             headers: {
               Authorization: `Bearer ${token}`
@@ -314,17 +317,24 @@ const Profile = () => {
           })
         );
 
-        const data = response.data.data;
+        const profileData = profileResponse.data.data;
+        
+        // Replace localhost URL with the correct server URL
+        const photoUrl = profileData.profilePhotoUrl ? 
+          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://10.22.123.129:8080') : 
+          null;
+
+        console.log('Adjusted photo URL:', photoUrl);
 
         setUserData({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          photoUri: data.profilePhotoUrl || null,
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          email: profileData.email,
+          photoUri: photoUrl
         });
 
       } catch (error: any) {
-        console.error('Profil alınamadı:', error);
+        console.error('Profil alınamadı:', error.response?.data || error);
         
         if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNABORTED') {
@@ -368,20 +378,133 @@ const Profile = () => {
 
   const userRole = getRole(userData.email);
 
-  const handleUpdateProfilePhoto = () => {
-    // Implementation for uploading new profile photo
-    // Will be connected to backend later
-    alert("Update profile photo functionality will be implemented");
+  const handleUpdateProfilePhoto = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const selectedAsset = result.assets[0];
+        
+        const extension = selectedAsset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+        
+        if (!['jpg', 'jpeg', 'png'].includes(extension)) {
+          Alert.alert('Invalid File', 'Please select a JPG, JPEG or PNG image.');
+          return;
+        }
+
+        const mimeType = extension === 'jpg' ? 'jpeg' : extension;
+        
+        const formData = new FormData();
+        formData.append('photo', {
+          uri: Platform.OS === 'ios' ? selectedAsset.uri.replace('file://', '') : selectedAsset.uri,
+          type: `image/${mimeType}`,
+          name: `profile.${extension}`,
+        } as any);
+
+        console.log('Uploading photo with token:', token);
+
+        const response = await axios.post(
+          'http://10.22.123.129:8080/api/v1/users/profile/photo',
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+              'Accept': 'application/json'
+            },
+          }
+        );
+
+        console.log('Photo upload response:', response.data);
+
+        // After successful upload, fetch updated profile data
+        const profileResponse = await api.get('/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const profileData = profileResponse.data.data;
+        
+        // Replace localhost URL with the correct server URL
+        const photoUrl = profileData.profilePhotoUrl ? 
+          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://10.22.123.129:8080') : 
+          null;
+
+        console.log('Adjusted photo URL after upload:', photoUrl);
+        
+        // Update local state with the new profile data
+        setUserData(prev => ({
+          ...prev,
+          photoUri: photoUrl
+        }));
+
+        Alert.alert('Success', 'Profile photo updated successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error updating profile photo:', error);
+      if (axios.isAxiosError(error)) {
+        console.log('Error response:', error.response?.data);
+        console.log('Error status:', error.response?.status);
+        Alert.alert('Error', error.response?.data?.message || `Failed to update profile photo: ${error.response?.status}`);
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred while updating profile photo');
+      }
+    }
   };
 
-  const handleDeleteProfilePhoto = () => {
-    // Implementation for deleting profile photo
-    // Will be connected to backend later
-    setUserData({
-      ...userData,
-      photoUri: null
-    });
-    alert("Profile photo deleted");
+  const handleDeleteProfilePhoto = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      // Delete photo from backend
+      await axios.delete('http://10.22.123.129:8080/api/v1/users/profile/photo', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+      });
+
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        photoUri: null
+      }));
+
+      Alert.alert('Success', 'Profile photo deleted successfully!');
+    } catch (error: any) {
+      console.error('Error deleting profile photo:', error.response?.data || error);
+      if (axios.isAxiosError(error)) {
+        console.log('Error response:', error.response?.data);
+        console.log('Error status:', error.response?.status);
+        Alert.alert('Error', error.response?.data?.message || `Failed to delete profile photo: ${error.response?.status}`);
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred while deleting profile photo');
+      }
+    }
   };
 
   const handleUpdateProfile = async (
@@ -470,6 +593,8 @@ const Profile = () => {
                 <Image
                   source={{ uri: userData.photoUri }}
                   style={styles.profilePhoto}
+                  contentFit="cover"
+                  transition={300}
                 />
               ) : (
                 <View style={styles.placeholderPhoto}>
