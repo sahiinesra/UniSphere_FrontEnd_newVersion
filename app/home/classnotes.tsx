@@ -620,7 +620,14 @@ export default function ClassNotes() {
         } as any);
       }
 
-      await axios.post(
+      console.log('Sending data to create note:', {
+        content: formData.content,
+        courseCode: formData.courseCode,
+        description: formData.description,
+        title: formData.title
+      });
+
+      const response = await axios.post(
         'http://192.168.1.57:8080/api/v1/class-notes',
         formDataObj,
         {
@@ -630,6 +637,8 @@ export default function ClassNotes() {
           },
         }
       );
+
+      console.log('Create note response:', response.data);
 
       // Close modal and reset form first
       setCreateModalVisible(false);
@@ -910,7 +919,11 @@ export default function ClassNotes() {
 
             {/* Class Notes List */}
             {filteredNotes.map(note => (
-              <View key={note.id} style={styles.card}>
+              <TouchableOpacity
+                key={note.id}
+                style={styles.card}
+                onPress={() => router.push(`/home/classnotes/${note.id}`)}
+              >
                 <View style={styles.noteHeader}>
                   <View>
                     <Text style={styles.noteTitle}>{note.title}</Text>
@@ -920,7 +933,10 @@ export default function ClassNotes() {
                   </View>
                   <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() => initUpdateForm(note)}
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevent card click when edit button is clicked
+                      initUpdateForm(note);
+                    }}
                   >
                     <Ionicons name="pencil" size={20} color="#2196F3" />
                   </TouchableOpacity>
@@ -946,7 +962,7 @@ export default function ClassNotes() {
                 )}
 
                 <Text style={styles.noteId}>Note ID: {note.id}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
