@@ -1044,9 +1044,6 @@ export default function ClassNotes() {
                               }
                             );
 
-                            console.log('AI Response:', response.data); // Debug için response'u logla
-
-                            // Backend'den gelen notu content'e yaz
                             if (response.data) {
                               setFormData(prev => ({
                                 ...prev,
@@ -1065,9 +1062,19 @@ export default function ClassNotes() {
                             setIsGeneratingContent(false);
                           }
                         }}
+                        disabled={isGeneratingContent}
                       >
-                        <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
-                        <Text style={styles.aiHelpText}>Get AI Help</Text>
+                        {isGeneratingContent ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                            <Text style={styles.aiHelpText}>Generating...</Text>
+                          </View>
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
+                            <Text style={styles.aiHelpText}>Get AI Help</Text>
+                          </>
+                        )}
                       </TouchableOpacity>
                     </View>
                     <TextInput
@@ -1191,9 +1198,6 @@ export default function ClassNotes() {
                               }
                             );
 
-                            console.log('AI Response:', response.data); // Debug için response'u logla
-
-                            // Backend'den gelen notu content'e yaz
                             if (response.data) {
                               setFormData(prev => ({
                                 ...prev,
@@ -1212,9 +1216,19 @@ export default function ClassNotes() {
                             setIsGeneratingContent(false);
                           }
                         }}
+                        disabled={isGeneratingContent}
                       >
-                        <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
-                        <Text style={styles.aiHelpText}>Get AI Help</Text>
+                        {isGeneratingContent ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                            <Text style={styles.aiHelpText}>Generating...</Text>
+                          </View>
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
+                            <Text style={styles.aiHelpText}>Get AI Help</Text>
+                          </>
+                        )}
                       </TouchableOpacity>
                     </View>
                     <TextInput
