@@ -504,14 +504,16 @@ export default function ClassNotes() {
     setSearchQuery(text);
 
     if (text) {
-      const filtered = notes.filter(note =>
-        note.title.toLowerCase().includes(text.toLowerCase()) ||
-        note.courseCode.toLowerCase().includes(text.toLowerCase()) ||
-        note.description.toLowerCase().includes(text.toLowerCase())
+      const searchText = text.toLowerCase();
+      const filtered = classNotes.filter(note =>
+        (note.title?.toLowerCase() || '').includes(searchText) ||
+        (note.courseCode?.toLowerCase() || '').includes(searchText) ||
+        (note.description?.toLowerCase() || '').includes(searchText) ||
+        (note.departmentId?.toString() || '').toLowerCase().includes(searchText)
       );
       setFilteredNotes(filtered);
     } else {
-      setFilteredNotes(notes);
+      setFilteredNotes(classNotes);
     }
   };
 
@@ -886,7 +888,7 @@ export default function ClassNotes() {
             </View>
 
             {/* Class Notes List */}
-            {classNotes.map(note => (
+            {filteredNotes.map(note => (
               <View key={note.id} style={styles.card}>
                 <View style={styles.noteHeader}>
                   <View>
