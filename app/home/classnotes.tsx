@@ -1,9 +1,10 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -546,19 +547,24 @@ export default function ClassNotes() {
       return [];
     }
   };
-  useEffect(() => {
-    const loadClassNotes = async () => {
-      console.log('loadClassNotes called');
-      setLoading(true);
-      const notes = await fetchClassNotes();
-      console.log('Fetched notes:', notes);
-      setClassNotes(notes);
-      setLoading(false);
-    };
 
+  const loadClassNotes = async () => {
+    console.log('loadClassNotes called');
+    setLoading(true);
+    const notes = await fetchClassNotes();
+    console.log('Fetched notes:', notes);
+    setClassNotes(notes);
+    setFilteredNotes(notes);
+    setLoading(false);
+  };
 
-    loadClassNotes();
-  }, []);
+  // Use useFocusEffect to refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen focused, refreshing class notes...');
+      loadClassNotes();
+    }, [])
+  );
 
   // Add file picker function
   const handleFilePick = async () => {
@@ -591,11 +597,11 @@ export default function ClassNotes() {
   const handleCreateNote = async () => {
     try {
       const token = await getAccessToken();
-
       if (!token) {
         Alert.alert('Error', 'JWT token bulunamadı.');
         return;
       }
+
       const formDataObj = new FormData();
       formDataObj.append('content', formData.content);
       formDataObj.append('courseCode', formData.courseCode);
@@ -612,7 +618,7 @@ export default function ClassNotes() {
         } as any);
       }
 
-      const response = await axios.post(
+      await axios.post(
         'http://192.168.1.57:8080/api/v1/class-notes',
         formDataObj,
         {
@@ -623,14 +629,13 @@ export default function ClassNotes() {
         }
       );
 
-      const createdNote = response.data.data;
-
-      const updatedNotes = [...notes, createdNote];
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
+      // Close modal and reset form first
       setCreateModalVisible(false);
       setSelectedFile(null);
       resetForm();
+
+      // Then fetch fresh data
+      await loadClassNotes();
 
       Alert.alert('Success', 'Note created successfully!');
     } catch (error: any) {
@@ -645,16 +650,15 @@ export default function ClassNotes() {
       Alert.alert('Error', 'Note ID is missing.');
       return;
     }
-  
+
     try {
       const token = await getAccessToken();
-  
       if (!token) {
         Alert.alert('Error', 'JWT token not found.');
         return;
       }
-  
-      const response = await axios.put(
+
+      await axios.put(
         `http://192.168.1.57:8080/api/v1/class-notes/${formData.noteId}`,
         {
           content: formData.content,
@@ -669,18 +673,14 @@ export default function ClassNotes() {
           },
         }
       );
-  
-      const updatedNote = response.data.data;
-  
-      const updatedNotes = notes.map((note) =>
-        note.id === updatedNote.id ? updatedNote : note
-      );
-  
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
+
+      // Close modal and reset form first
       setUpdateModalVisible(false);
       resetForm();
-  
+
+      // Then fetch fresh data
+      await loadClassNotes();
+
       Alert.alert('Success', 'Class note updated successfully!');
     } catch (error: any) {
       console.error('Update class note error:', error.response?.data || error.message);
@@ -692,13 +692,12 @@ export default function ClassNotes() {
   const handleDeleteNote = async (noteId: number) => {
     try {
       const token = await getAccessToken();
-  
       if (!token) {
         Alert.alert('Error', 'JWT token not found.');
         return;
       }
-  
-      const response = await axios.delete(
+
+      await axios.delete(
         `http://192.168.1.57:8080/api/v1/class-notes/${noteId}`,
         {
           headers: {
@@ -707,17 +706,13 @@ export default function ClassNotes() {
           },
         }
       );
-  
-      const message = response.data?.data?.message;
-      console.log('Note deleted successfully:', message);
-  
-      // Fetch updated notes list
-      const updatedClassNotes = await fetchClassNotes();
-      setClassNotes(updatedClassNotes);
-      
-      // Close the modal and reset form
+
+      // Close modal first
       setDeleteModalVisible(false);
       resetForm();
+
+      // Then fetch fresh data
+      await loadClassNotes();
 
       Alert.alert('Success', 'Note deleted successfully!');
     } catch (error: any) {
