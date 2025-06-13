@@ -248,11 +248,12 @@ const PasswordModalContent: React.FC<PasswordModalContentProps> = ({
                 <Text style={styles.inputLabel}>Verification Code</Text>
                 <TextInput
                   style={styles.input}
-                  keyboardType="number-pad"
+                  keyboardType="default"
                   value={emailCode}
                   onChangeText={setEmailCode}
                   placeholderTextColor="#999"
                   placeholder="Enter verification code"
+                  autoCapitalize="none"
                 />
               </View>
 
@@ -547,32 +548,96 @@ const Profile = () => {
     }
   };
 
-  const handleSendVerificationCode = () => {
-    // Implementation for sending verification code
-    // Will be connected to backend later
+  const handleSendVerificationCode = async () => {
     if (!resetEmail.trim()) {
       alert("Please enter an email address");
       return;
     }
 
-    setVerificationSent(true);
-    alert(`Verification code sent to ${resetEmail}`);
+    try {
+      // First send the verification code to email
+      const response = await api.post('/auth/forgot-password', {
+        email: resetEmail
+      });
+
+      console.log('Verification code response:', response.data);
+
+      if (response.data?.data?.message) {
+        setVerificationSent(true);
+        alert(response.data.data.message || `Verification code sent to ${resetEmail}`);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      console.error('Verification code error details:', {
+        response: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message
+      });
+      
+      setVerificationSent(false);
+      if (error?.response?.data?.message) {
+        alert(error.response.data.message);
+      } else if (error?.message) {
+        alert(`Failed to send verification code: ${error.message}`);
+      } else {
+        alert('Failed to send verification code. Please try again.');
+      }
+    }
   };
 
-  const handleChangePassword = () => {
-    // Implementation for changing password
-    // Will be connected to backend later
+  const handleChangePassword = async () => {
     if (!newPassword.trim() || !emailCode.trim()) {
       alert("Please enter both verification code and new password");
       return;
     }
 
-    setPasswordModalVisible(false);
-    setVerificationSent(false);
-    setNewPassword('');
-    setEmailCode('');
-    setResetEmail('');
-    alert("Password changed successfully");
+    try {
+      console.log('Attempting to verify email with code:', emailCode);
+      
+      // First verify the email with the code
+      const verifyResponse = await api.get(`/auth/verify-email?token=${emailCode}`);
+      console.log('Email verification response:', verifyResponse.data);
+
+      if (verifyResponse.data?.data?.message) {
+        console.log('Attempting to reset password');
+        
+        // Then reset the password
+        const resetResponse = await api.post('/auth/reset-password', {
+          token: emailCode,
+          newPassword: newPassword
+        });
+
+        console.log('Password reset response:', resetResponse.data);
+
+        if (resetResponse.data?.data?.message) {
+          setPasswordModalVisible(false);
+          setVerificationSent(false);
+          setNewPassword('');
+          setEmailCode('');
+          setResetEmail('');
+          alert(resetResponse.data.data.message || "Password changed successfully");
+        } else {
+          throw new Error('Invalid response from password reset');
+        }
+      } else {
+        throw new Error('Email verification failed');
+      }
+    } catch (error: any) {
+      console.error('Password reset error details:', {
+        response: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message
+      });
+
+      if (error?.response?.data?.message) {
+        alert(error.response.data.message);
+      } else if (error?.message) {
+        alert(`Failed to reset password: ${error.message}`);
+      } else {
+        alert('Failed to reset password. Please try again.');
+      }
+    }
   };
 
   const handleLogout = () => {
