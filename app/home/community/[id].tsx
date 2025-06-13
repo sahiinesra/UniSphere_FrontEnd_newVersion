@@ -128,11 +128,17 @@ const CommunityDetails = () => {
       const data = response.data.data;
       console.log('Community details:', data);
 
+      // Replace localhost URL with the correct server URL
+      const photoUrl = data.profilePhotoUrl ? 
+        data.profilePhotoUrl.replace('http://localhost:8080', 'http://192.168.1.57:8080') : 
+        null;
+
       setCommunityData({
         ...data,
+        profilePhotoUrl: photoUrl,
         memberCount: data.participantCount || 0
       });
-      setHasProfilePhoto(!!data.profilePhotoUrl);
+      setHasProfilePhoto(!!photoUrl);
     } catch (error: any) {
       console.error('Failed to fetch community details:', error.response?.data || error);
       Alert.alert('Error', 'Failed to load community details');
