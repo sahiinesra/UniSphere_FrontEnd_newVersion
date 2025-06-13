@@ -804,22 +804,43 @@ export default function ClassNotes() {
 
     setIsGeneratingContent(true);
     try {
-      // This will be implemented later when connecting to the backend
-      // For now, just simulate a delay and set some sample content
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Sample content - this will be replaced with actual AI-generated content
-      const sampleContent = "This is a sample AI-generated content. It will be replaced with actual AI-generated content when the backend is connected. The content will be limited to 500 words and will be based on the user's description.";
-      
-      setFormData(prev => ({
-        ...prev,
-        content: sampleContent
-      }));
-      setAiDescription('');
-      setAiDescriptionModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate content. Please try again.');
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'JWT token not found.');
+        return;
+      }
+
+      const response = await axios.post(
+        'http://192.168.1.57:8000/generate_note',
+        {
+          topic: formData.description,
+          max_words: 500
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('AI Response:', response.data); // Debug için response'u logla
+
+      // Backend'den gelen notu content'e yaz
+      if (response.data) {
+        setFormData(prev => ({
+          ...prev,
+          content: response.data
+        }));
+      } else {
+        throw new Error('No content received from the server');
+      }
+    } catch (error: any) {
       console.error('Error generating content:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to generate content. Please try again.'
+      );
     } finally {
       setIsGeneratingContent(false);
     }
@@ -980,7 +1001,54 @@ export default function ClassNotes() {
                       <Text style={styles.inputLabel}>Content</Text>
                       <TouchableOpacity
                         style={styles.aiHelpButton}
-                        onPress={() => setAiDescriptionModalVisible(true)}
+                        onPress={async () => {
+                          if (!formData.description.trim()) {
+                            Alert.alert('Error', 'Please enter a description first.');
+                            return;
+                          }
+                          setIsGeneratingContent(true);
+                          try {
+                            const token = await getAccessToken();
+                            if (!token) {
+                              Alert.alert('Error', 'JWT token not found.');
+                              return;
+                            }
+
+                            const response = await axios.post(
+                              'http://192.168.1.57:8000/generate_note',
+                              {
+                                topic: formData.description,
+                                max_words: 500
+                              },
+                              {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                  'Content-Type': 'application/json',
+                                },
+                              }
+                            );
+
+                            console.log('AI Response:', response.data); // Debug için response'u logla
+
+                            // Backend'den gelen notu content'e yaz
+                            if (response.data) {
+                              setFormData(prev => ({
+                                ...prev,
+                                content: response.data
+                              }));
+                            } else {
+                              throw new Error('No content received from the server');
+                            }
+                          } catch (error: any) {
+                            console.error('Error generating content:', error);
+                            Alert.alert(
+                              'Error',
+                              error.response?.data?.message || 'Failed to generate content. Please try again.'
+                            );
+                          } finally {
+                            setIsGeneratingContent(false);
+                          }
+                        }}
                       >
                         <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
                         <Text style={styles.aiHelpText}>Get AI Help</Text>
@@ -1080,7 +1148,54 @@ export default function ClassNotes() {
                       <Text style={styles.inputLabel}>Content</Text>
                       <TouchableOpacity
                         style={styles.aiHelpButton}
-                        onPress={() => setAiDescriptionModalVisible(true)}
+                        onPress={async () => {
+                          if (!formData.description.trim()) {
+                            Alert.alert('Error', 'Please enter a description first.');
+                            return;
+                          }
+                          setIsGeneratingContent(true);
+                          try {
+                            const token = await getAccessToken();
+                            if (!token) {
+                              Alert.alert('Error', 'JWT token not found.');
+                              return;
+                            }
+
+                            const response = await axios.post(
+                              'http://192.168.1.57:8000/generate_note',
+                              {
+                                topic: formData.description,
+                                max_words: 500
+                              },
+                              {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                  'Content-Type': 'application/json',
+                                },
+                              }
+                            );
+
+                            console.log('AI Response:', response.data); // Debug için response'u logla
+
+                            // Backend'den gelen notu content'e yaz
+                            if (response.data) {
+                              setFormData(prev => ({
+                                ...prev,
+                                content: response.data
+                              }));
+                            } else {
+                              throw new Error('No content received from the server');
+                            }
+                          } catch (error: any) {
+                            console.error('Error generating content:', error);
+                            Alert.alert(
+                              'Error',
+                              error.response?.data?.message || 'Failed to generate content. Please try again.'
+                            );
+                          } finally {
+                            setIsGeneratingContent(false);
+                          }
+                        }}
                       >
                         <MaterialCommunityIcons name="star-four-points" size={16} color="#FFFFFF" />
                         <Text style={styles.aiHelpText}>Get AI Help</Text>
