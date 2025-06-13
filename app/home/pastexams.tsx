@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -59,6 +59,7 @@ export default function PastExams() {
   const [filteredExams, setFilteredExams] = useState<PastExam[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   // UI Modals
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
@@ -75,6 +76,34 @@ export default function PastExams() {
     title: '',
     examId: ''
   });
+
+  // Fetch user profile to get role
+  const fetchUserProfile = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const response = await axios.get(
+        'http://192.168.1.57:8080/api/v1/users/profile',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('User Profile Response:', response.data);
+      const userData = response.data.data;
+      setUserRole(userData.role);
+    } catch (error: any) {
+      console.error('Failed to fetch user profile:', error.response?.data || error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
 
   const loadExams = async () => {
     const data = await fetchPastExams();
@@ -409,30 +438,32 @@ export default function PastExams() {
             <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
           </View>
 
-          {/* Management Buttons - Only visible to authorized users */}
-          <View style={styles.managementButtons}>
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setCreateModalVisible(true);
-              }}
-            >
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Create New</Text>
-            </TouchableOpacity>
+          {/* Management Buttons - Only visible to instructors */}
+          {userRole === 'INSTRUCTOR' && (
+            <View style={styles.managementButtons}>
+              <TouchableOpacity
+                style={styles.managementButton}
+                onPress={() => {
+                  resetForm();
+                  setCreateModalVisible(true);
+                }}
+              >
+                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Text style={styles.managementButtonText}>Create New</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.managementButton}
-              onPress={() => {
-                resetForm();
-                setDeleteModalVisible(true);
-              }}
-            >
-              <Ionicons name="trash" size={20} color="#fff" />
-              <Text style={styles.managementButtonText}>Delete Exam</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.managementButton}
+                onPress={() => {
+                  resetForm();
+                  setDeleteModalVisible(true);
+                }}
+              >
+                <Ionicons name="trash" size={20} color="#fff" />
+                <Text style={styles.managementButtonText}>Delete Exam</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Exams List */}
           {filteredExams.map(exam => (
@@ -444,12 +475,14 @@ export default function PastExams() {
                     {exam.courseCode} | {exam.departmentId} | {exam.term} {exam.year}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => initUpdateForm(exam)}
-                >
-                  <Ionicons name="pencil" size={20} color="#2196F3" />
-                </TouchableOpacity>
+                {userRole === 'INSTRUCTOR' && (
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => initUpdateForm(exam)}
+                  >
+                    <Ionicons name="pencil" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View style={styles.filesContainer}>
