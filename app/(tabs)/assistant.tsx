@@ -1,19 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    ListRenderItem,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  ListRenderItem,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Define API URL based on platform
+const API_URL = Platform.select({
+  android: 'http://10.0.2.2:8087',  // Android Emulator
+  ios: 'http://192.168.1.57:8087',     // iOS Simulator
+  default: 'http://192.168.1.57:8087'  // Web/default
+});
+
+// API endpoint
+const ASK_ENDPOINT = `http://192.168.1.57:8087/ask`;
 
 // Define types for our data
 interface ChatMessage {
@@ -49,7 +61,7 @@ const Assistant = () => {
   }, [chatMessages]);
 
   // Send message to AI assistant
-  const sendMessage = (): void => {
+  const sendMessage = async (): Promise<void> => {
     if (messageInput.trim() === '') return;
     
     // Add user message
@@ -63,18 +75,58 @@ const Assistant = () => {
     setChatMessages([...chatMessages, userMessage]);
     setMessageInput('');
     
-    // Simulate AI response
+    // Show typing indicator
     setIsTyping(true);
-    setTimeout(() => {
+    
+    try {
+      // Make API call to backend
+      console.log('Sending request to:', ASK_ENDPOINT);
+      console.log('Request body:', { question: messageInput });
+      
+      const response = await axios.post(ASK_ENDPOINT, {
+        question: messageInput
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Response:', response.data);
+      
+      // Add AI response
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        message: `I'm a placeholder AI response. In the future, I'll connect to the backend API to provide real answers about ${messageInput}.`,
+        message: response.data.answer,
         timestamp: new Date().toISOString()
       };
+      
       setChatMessages(prev => [...prev, aiResponse]);
+    } catch (error: any) {
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      Alert.alert(
+        'Error',
+        `Failed to get response from AI. Error: ${error.response?.status || error.message}`
+      );
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        message: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date().toISOString()
+      };
+      
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   // Render chat message
@@ -148,17 +200,28 @@ const Assistant = () => {
                 value={messageInput}
                 onChangeText={setMessageInput}
                 multiline
+                onSubmitEditing={sendMessage}
+                returnKeyType="send"
+                blurOnSubmit={false}
+                editable={!isTyping}
               />
               <TouchableOpacity 
-                style={styles.sendButton}
+                style={[
+                  styles.sendButton,
+                  isTyping && styles.sendButtonDisabled
+                ]}
                 onPress={sendMessage}
-                disabled={messageInput.trim() === ''}
+                disabled={isTyping || messageInput.trim() === ''}
               >
-                <Ionicons 
-                  name="send" 
-                  size={24} 
-                  color={messageInput.trim() === '' ? '#CCCCCC' : '#2196F3'} 
-                />
+                {isTyping ? (
+                  <ActivityIndicator size="small" color="#CCCCCC" />
+                ) : (
+                  <Ionicons 
+                    name="send" 
+                    size={24} 
+                    color={messageInput.trim() === '' ? '#CCCCCC' : '#2196F3'} 
+                  />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -285,6 +348,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     borderWidth: 2,
     borderColor: '#000000',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
 });
 
