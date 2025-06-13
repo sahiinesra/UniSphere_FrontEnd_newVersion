@@ -22,6 +22,29 @@ export const communityService = {
     }
   },
 
+  getUserRole: async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('No access token found');
+      }
+      const response = await axios.get(
+        `${BASE_URL}/auth/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log('User role response:', response.data);
+      return response.data.data.role;
+    } catch (error) {
+      console.error('Error in getUserRole:', error);
+      throw error;
+    }
+  },
+
   getMyCommunities: async () => {
     try {
       const token = await getAccessToken();

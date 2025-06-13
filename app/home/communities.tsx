@@ -1,7 +1,9 @@
+import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { communityService } from '../services/communityService';
+import { getAccessToken } from '../utils/auth';
 
 // Define colors to match the application theme
 const colors = {
@@ -31,10 +33,39 @@ export default function Communities() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
   const [updateFormData, setUpdateFormData] = useState({
     name: '',
     abbreviation: '',
   });
+
+  // Fetch user profile to get role
+  const fetchUserProfile = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const response = await axios.get(
+        'http://192.168.1.57:8080/api/v1/users/profile',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('User Profile Response:', response.data);
+      const userData = response.data.data;
+      setUserRole(userData.role);
+    } catch (error: any) {
+      console.error('Failed to fetch user profile:', error.response?.data || error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
 
   useEffect(() => {
     if (newCommunity) {
@@ -207,21 +238,23 @@ export default function Communities() {
                 </Text>
               </TouchableOpacity>
               
-              <View style={styles.cardActions}>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.updateButton]}
-                  onPress={() => handleUpdateCommunity(community)}
-                >
-                  <Text style={styles.buttonText}>Update</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.deleteButton]}
-                  onPress={() => handleDeleteCommunity(community.id)}
-                >
-                  <Text style={styles.buttonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
+              {userRole === 'INSTRUCTOR' && (
+                <View style={styles.cardActions}>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.updateButton]}
+                    onPress={() => handleUpdateCommunity(community)}
+                  >
+                    <Text style={styles.buttonText}>Update</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={() => handleDeleteCommunity(community.id)}
+                  >
+                    <Text style={styles.buttonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))}
         </ScrollView>
