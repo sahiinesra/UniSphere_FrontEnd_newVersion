@@ -18,6 +18,13 @@ export default function CampusMap() {
     <>
       <Stack.Screen options={{ 
         title: 'Campus Map',
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: colors.text,
+        },
       }} />
       
       <View style={styles.container}>
@@ -29,9 +36,11 @@ export default function CampusMap() {
         )}
         
         <WebView
-          source={{ uri: "https://yandex.com.tr/profile/55049255478?lang=tr&no-distribution=1&view-state=mini&source=wizbiz_new_map_single" }}
+          source={{ uri: "https://yandex.com.tr/profile/55049255478?lang=tr&no-distribution=1&view-state=mini&source=wizbiz_new_map_single&theme=light" }}
           style={styles.webview}
           onLoadEnd={() => setIsLoading(false)}
+          backgroundColor={colors.background}
+          containerStyle={styles.webviewContainer}
         />
       </View>
     </>
@@ -46,6 +55,10 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  webviewContainer: {
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     position: 'absolute',
