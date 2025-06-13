@@ -134,7 +134,6 @@ export default function CreateCommunity() {
           <Text style={styles.inputLabel}>Community Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter community name"
             value={communityName}
             onChangeText={setCommunityName}
             editable={!loading}
@@ -143,7 +142,6 @@ export default function CreateCommunity() {
           <Text style={styles.inputLabel}>Community Abbreviation (max 10 characters)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter abbreviation"
             value={communityAbbreviation}
             onChangeText={setCommunityAbbreviation}
             maxLength={10}
