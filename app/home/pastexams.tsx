@@ -124,11 +124,13 @@ export default function PastExams() {
     setSearchQuery(text);
 
     if (text) {
+      const searchText = text.toLowerCase();
       const filtered = exams.filter(exam =>
-        exam.title.toLowerCase().includes(text.toLowerCase()) ||
-        exam.courseCode.toLowerCase().includes(text.toLowerCase()) ||
-        exam.term.toLowerCase().includes(text.toLowerCase()) ||
-        exam.year.includes(text)
+        (exam.title?.toLowerCase() || '').includes(searchText) ||
+        (exam.courseCode?.toLowerCase() || '').includes(searchText) ||
+        (exam.term?.toLowerCase() || '').includes(searchText) ||
+        (exam.year?.toString() || '').includes(searchText) ||
+        (exam.departmentId?.toString() || '').toLowerCase().includes(searchText)
       );
       setFilteredExams(filtered);
     } else {
@@ -429,13 +431,25 @@ export default function PastExams() {
         <View style={styles.container}>
           {/* Search Bar */}
           <View style={styles.searchContainer}>
+            <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for past exams..."
+              placeholder="Search by course code, title, term, year..."
               value={searchQuery}
               onChangeText={handleSearch}
+              placeholderTextColor="#666"
             />
-            <Ionicons name="search" size={24} color="#000" style={styles.searchIcon} />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setSearchQuery('');
+                  setFilteredExams(exams);
+                }}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Management Buttons - Only visible to instructors */}
@@ -775,9 +789,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 16,
+    color: '#000000',
   },
   searchIcon: {
-    marginLeft: 10,
+    marginRight: 10,
   },
   managementButtons: {
     flexDirection: 'row',
@@ -977,5 +992,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
     marginBottom: 10,
+  },
+  clearButton: {
+    padding: 5,
   },
 }); 
