@@ -1,121 +1,132 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import React from 'react';
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Attachment, Message, MessageListProps } from '../../types/chat';
+import { MessageListProps } from '../../types/chat';
 
-const colors = {
-  background: '#FFD700',
-  cardBackground: '#FFFFFF',
-  primary: '#4CAF50',
-  secondary: '#FF9800',
-  border: '#000000',
-  text: '#000000',
-  secondaryText: '#666666',
-};
-
-const MessageBubble: React.FC<{ message: Message; isCurrentUser: boolean }> = ({
-  message,
-  isCurrentUser,
+const MessageList: React.FC<MessageListProps> = ({
+  messages,
+  scrollViewRef,
+  onDeleteMessage,
+  currentUserId,
+  isLeader
 }) => {
-  const renderAttachment = (attachment: Attachment) => {
-    switch (attachment.type) {
-      case 'image':
-        return (
-          <TouchableOpacity key={attachment.id} style={styles.imageContainer}>
-            <Image
-              source={{ uri: attachment.url }}
-              style={styles.attachmentImage}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-        );
-      case 'pdf':
-        return (
-          <TouchableOpacity
-            key={attachment.id}
-            style={[styles.fileAttachmentContainer, isCurrentUser ? styles.currentUserFile : styles.otherUserFile]}
-          >
-            <Ionicons name="document-text" size={24} color={colors.text} />
-            <View style={styles.fileInfo}>
-              <Text style={styles.fileName} numberOfLines={1}>
-                {attachment.name}
-              </Text>
-              <Text style={styles.fileSize}>
-                {attachment.size ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB` : ''}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      default:
-        return (
-          <TouchableOpacity
-            key={attachment.id}
-            style={[styles.fileAttachmentContainer, isCurrentUser ? styles.currentUserFile : styles.otherUserFile]}
-          >
-            <Ionicons name="document" size={24} color={colors.text} />
-            <View style={styles.fileInfo}>
-              <Text style={styles.fileName} numberOfLines={1}>
-                {attachment.name}
-              </Text>
-              <Text style={styles.fileSize}>
-                {attachment.size ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB` : ''}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
+  const handleFilePress = async (fileUrl: string) => {
+    try {
+      await Linking.openURL(fileUrl);
+    } catch (error) {
+      console.error('Error opening file:', error);
+      Alert.alert('Error', 'Could not open file');
     }
   };
 
-  return (
-    <View style={[
-      styles.messageContainer,
-      isCurrentUser ? styles.currentUserContainer : styles.otherUserContainer
-    ]}>
-      {!isCurrentUser && (
-        <Text style={styles.senderName}>{message.sender.name}</Text>
-      )}
-      <View style={[
-        styles.messageBubble,
-        isCurrentUser ? styles.currentUserBubble : styles.otherUserBubble
-      ]}>
-        {message.text && <Text style={styles.messageText}>{message.text}</Text>}
-        {message.attachments?.map((attachment) => renderAttachment(attachment))}
-        <Text style={styles.timestamp}>
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
-      </View>
-    </View>
-  );
-};
+  const handleDeletePress = (messageId: number) => {
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDeleteMessage?.(messageId)
+        }
+      ]
+    );
+  };
 
-const MessageList: React.FC<MessageListProps> = ({ messages, scrollViewRef }) => {
+  const renderMessage = (message: typeof messages[0]) => {
+    const isCurrentUser = message.senderId === currentUserId;
+    const canDelete = isCurrentUser || isLeader;
+
+    return (
+      <View
+        key={message.id}
+        style={[
+          styles.messageContainer,
+          isCurrentUser ? styles.userMessageContainer : styles.otherMessageContainer
+        ]}
+      >
+        {!isCurrentUser && (
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person-circle" size={32} color="#FFD700" />
+          </View>
+        )}
+
+        <View style={styles.messageContent}>
+          {!isCurrentUser && (
+            <Text style={styles.senderName}>{message.senderName}</Text>
+          )}
+
+          <View
+            style={[
+              styles.messageBubble,
+              isCurrentUser ? styles.userBubble : styles.otherBubble
+            ]}
+          >
+            {message.messageType === 'FILE' && message.fileUrl && (
+              <TouchableOpacity
+                style={styles.fileContainer}
+                onPress={() => handleFilePress(message.fileUrl!)}
+              >
+                {message.fileType?.startsWith('image/') ? (
+                  <Image
+                    source={{ uri: message.fileUrl }}
+                    style={styles.imageFile}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.fileInfo}>
+                    <Ionicons name="document" size={24} color="#000000" />
+                    <Text style={styles.fileName}>{message.fileName}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {message.content && (
+              <Text style={styles.messageText}>{message.content}</Text>
+            )}
+
+            <Text style={styles.timestamp}>
+              {new Date(message.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
+          </View>
+        </View>
+
+        {canDelete && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeletePress(message.id)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   return (
     <ScrollView
       ref={scrollViewRef}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-      automaticallyAdjustKeyboardInsets={true}
     >
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          isCurrentUser={message.sender.id === 'current-user-id'} // Replace with actual user ID
-        />
-      ))}
+      {messages.map(renderMessage)}
     </ScrollView>
   );
 };
@@ -123,106 +134,93 @@ const MessageList: React.FC<MessageListProps> = ({ messages, scrollViewRef }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFD700',
   },
   contentContainer: {
-    padding: 16,
-    gap: 16,
+    padding: 10,
   },
   messageContainer: {
-    maxWidth: '85%',
-    marginVertical: 4,
+    flexDirection: 'row',
+    marginBottom: 10,
+    alignItems: 'flex-end',
   },
-  currentUserContainer: {
-    alignSelf: 'flex-end',
+  userMessageContainer: {
+    justifyContent: 'flex-end',
   },
-  otherUserContainer: {
-    alignSelf: 'flex-start',
+  otherMessageContainer: {
+    justifyContent: 'flex-start',
   },
-  messageBubble: {
-    padding: 12,
-    borderWidth: 3,
-    borderColor: colors.border,
-    borderRadius: 12,
-    shadowColor: colors.border,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+  avatarContainer: {
+    width: 32,
+    height: 32,
+    marginRight: 8,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
   },
-  currentUserBubble: {
-    backgroundColor: colors.primary,
-  },
-  otherUserBubble: {
-    backgroundColor: colors.cardBackground,
+  messageContent: {
+    maxWidth: '70%',
   },
   senderName: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.text,
+    color: '#666666',
     marginBottom: 4,
-    textTransform: 'uppercase',
+    marginLeft: 12,
+  },
+  messageBubble: {
+    padding: 10,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  userBubble: {
+    backgroundColor: '#2196F3',
+    borderTopRightRadius: 5,
+  },
+  otherBubble: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 5,
   },
   messageText: {
     fontSize: 16,
-    color: colors.text,
-    marginBottom: 4,
+    color: '#000000',
   },
   timestamp: {
     fontSize: 10,
-    color: colors.secondaryText,
+    color: '#666666',
     alignSelf: 'flex-end',
     marginTop: 4,
-    fontWeight: '600',
   },
-  imageContainer: {
-    marginTop: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: colors.border,
-    shadowColor: colors.border,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+  fileContainer: {
+    marginBottom: 8,
   },
-  attachmentImage: {
-    width: Dimensions.get('window').width * 0.6,
-    height: Dimensions.get('window').width * 0.6,
-    backgroundColor: colors.cardBackground,
-  },
-  fileAttachmentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 3,
-    borderColor: colors.border,
-    shadowColor: colors.border,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  currentUserFile: {
-    backgroundColor: colors.secondary,
-  },
-  otherUserFile: {
-    backgroundColor: colors.cardBackground,
+  imageFile: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   fileInfo: {
-    marginLeft: 8,
-    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   fileName: {
+    marginLeft: 8,
     fontSize: 14,
-    color: colors.text,
-    fontWeight: 'bold',
+    color: '#000000',
   },
-  fileSize: {
-    fontSize: 12,
-    color: colors.secondaryText,
-    marginTop: 2,
-    fontWeight: '600',
+  deleteButton: {
+    padding: 8,
+    marginLeft: 8,
   },
 });
 

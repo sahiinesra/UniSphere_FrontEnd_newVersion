@@ -1,34 +1,80 @@
 import { ScrollView } from 'react-native';
 
-export interface Message {
-  id: string;
-  text: string;
-  sender: {
-    id: string;
-    name: string;
-    avatar?: string;
+// Chat message types
+export interface ChatMessage {
+  id: number;
+  communityId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  senderId: number;
+  senderName: string;
+  messageType: 'TEXT' | 'FILE';
+  fileId?: number;
+  fileName?: string;
+  fileType?: string;
+  fileUrl?: string;
+}
+
+export interface ChatFile {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  fileUrl: string;
+}
+
+export interface ChatSender {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface ChatMessageResponse {
+  data: ChatMessage[];
+  timestamp: string;
+}
+
+export interface SingleMessageResponse {
+  data: ChatMessage & {
+    file?: ChatFile;
+    sender?: ChatSender;
   };
-  timestamp: Date;
-  attachments?: Attachment[];
+  timestamp: string;
 }
 
-export interface Attachment {
-  id: string;
-  type: 'image' | 'pdf' | 'file';
-  url: string;
-  name: string;
-  size?: number;
-  mimeType?: string;
-  thumbnailUrl?: string;
+export interface SendMessageRequest {
+  content: string;
+  messageType: 'TEXT';
 }
 
+export interface ErrorResponse {
+  data: string;
+  timestamp: string;
+  error: {
+    code: string;
+    message: string;
+    details?: string;
+    field?: string;
+    severity: string;
+    debugInfo?: string;
+  };
+}
+
+// Chat UI component props
 export interface ChatInputProps {
-  onSendMessage: (message: Message) => void;
+  onSendMessage: (content: string) => Promise<void>;
+  onSendFile?: (file: any, content?: string) => Promise<void>;
+  disabled?: boolean;
 }
 
 export interface MessageListProps {
-  messages: Message[];
+  messages: ChatMessage[];
   scrollViewRef: React.RefObject<ScrollView | null>;
+  onDeleteMessage?: (messageId: number) => Promise<void>;
+  currentUserId?: number;
+  isLeader?: boolean;
 }
 
 export interface ChatHeaderProps {

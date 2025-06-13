@@ -1,87 +1,257 @@
+import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import ChatHeader from '../../components/chat/ChatHeader';
 import ChatInput from '../../components/chat/ChatInput';
 import MessageList from '../../components/chat/MessageList';
-import { Message } from '../../types/chat';
+import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 
-// Define theme colors to match neo-brutalism style
-const colors = {
-  background: '#FFD700', // Gold yellow background
-  cardBackground: '#FFFFFF',
-  primary: '#007AFF',
-  border: '#000000',
-  text: '#000000',
-  secondaryText: '#666666',
+// Define API URL based on platform
+const API_URL = Platform.select({ 
+  android: 'http://10.0.2.2:8080',
+  ios: 'http://192.168.1.57:8080',
+  default: 'http://192.168.1.57:8080'
+});
+
+// Get access token
+const getAccessToken = async () => {
+  return await SecureStore.getItemAsync('accessToken');
 };
 
 const CommunityChat = () => {
   const { communityId, communityName, memberCount } = useLocalSearchParams();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleSendMessage = (message: Message) => {
-    // Here you would typically send the message to your backend
-    // For now, we'll just add it to the local state
-    setMessages((prevMessages) => [...prevMessages, message]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
+  const [isLeader, setIsLeader] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [isSending, setIsSending] = useState(false);
+
+  // Initialize WebSocket connection
+  const initializeWebSocket = async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+
+    // <- GÜNCEL
+    const ws = new WebSocket(
+      `ws://192.168.1.57:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
+    );
+
+    console.log("WebSocket Connecting with token.");
+
+    ws.onopen = () => {
+      console.log('WebSocket Connected');
+    };
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      setMessages((prev) => (prev ? [...prev, message] : [message]));
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket Error!', error);
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket Disconnected!', event);
+      setTimeout(initializeWebSocket, 3000);
+    };
+
+    wsRef.current = ws;
   };
 
+  // Fetch chat messages
+  const fetchMessages = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const response = await axios.get<ChatMessageResponse>(
+        `${API_URL}/api/v1/communities/${communityId}/chat`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          params: { limit: 50 },
+        }
+      );
+
+      setMessages(response.data?.data?.length ? response.data.data : []);
+    } catch (error) {
+      console.error('Failed to fetch messages!', error);
+      Alert.alert('Error!', 'Failed to load chat messages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send text message
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
+
+    setIsSending(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      await axios.post(
+        `${API_URL}/api/v1/communities/${communityId}/chat/text`,
+        { content, messageType: 'TEXT' },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log('Message sent');
+    } catch (error) {
+      console.error('Failed to send message!', error);
+      Alert.alert('Error!', 'Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Send file message
+  const handleSendFile = async (file: any, content?: string) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (content) {
+        formData.append('content', content);
+      }
+
+      await axios.post(
+        `${API_URL}/api/v1/communities/${communityId}/chat/file`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('File sent');
+    } catch (error) {
+      console.error('Failed to send file!', error);
+      Alert.alert('Error!', 'Failed to send file');
+    }
+  };
+
+  // Delete message
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      await axios.delete(
+        `${API_URL}/api/v1/communities/${communityId}/chat/${messageId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        }
+      );
+
+      setMessages((prev) =>
+        prev ? prev.filter((msg) => msg.id !== messageId) : []
+      );
+    } catch (error) {
+      console.error('Failed to delete message!', error);
+      Alert.alert('Error!', 'Failed to delete message');
+    }
+  };
+
+  // Initialize chat
+  useEffect(() => {
+    const initialize = async () => {
+      await Promise.all([fetchMessages(), initializeWebSocket()]);
+    };
+    initialize();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [communityId]);
+
+  // Handle back press
   const handleBackPress = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
     router.back();
   };
 
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated: true });
-    }
-  }, [messages]);
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.container}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        style={styles.keyboardAvoid}
       >
         <ChatHeader
           communityName={communityName as string}
           memberCount={Number(memberCount)}
           onBackPress={handleBackPress}
         />
-        <View style={styles.messageListContainer}>
-          <MessageList
-            messages={messages}
-            scrollViewRef={scrollViewRef}
-          />
-        </View>
-        <ChatInput onSendMessage={handleSendMessage} />
+        <MessageList
+          messages={messages}
+          scrollViewRef={scrollViewRef}
+          onDeleteMessage={handleDeleteMessage}
+          currentUserId={currentUserId}
+          isLeader={isLeader}
+        />
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          onSendFile={handleSendFile}
+          disabled={isSending}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+const styles = StyleSheet.create({ 
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFD700',
   },
-  messageListContainer: {
+  keyboardAvoid: {
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
-export default CommunityChat; 
+// Export
+export default CommunityChat;
+

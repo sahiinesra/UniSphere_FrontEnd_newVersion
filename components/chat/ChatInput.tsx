@@ -1,186 +1,135 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Attachment, ChatInputProps, Message } from '../../types/chat';
+import { ChatInputProps } from '../../types/chat';
 
-const colors = {
-  background: '#FFD700',
-  cardBackground: '#FFFFFF',
-  primary: '#4CAF50',
-  secondary: '#FF9800',
-  border: '#000000',
-  text: '#000000',
-  secondaryText: '#666666',
-};
-
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onSendFile, disabled }) => {
   const [message, setMessage] = useState('');
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
-  const handleSend = () => {
-    if (message.trim() || attachments.length > 0) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        text: message.trim(),
-        sender: {
-          id: 'current-user-id', // Replace with actual user ID
-          name: 'Current User', // Replace with actual user name
-        },
-        timestamp: new Date(),
-        attachments: attachments,
-      };
-
-      onSendMessage(newMessage);
-      setMessage('');
-      setAttachments([]);
-    }
+  const handleSend = async () => {
+    if (message.trim() === '' || disabled) return;
+    
+    await onSendMessage(message);
+    setMessage('');
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
+  const handlePickFile = async () => {
+    if (disabled || !onSendFile) return;
 
-    if (!result.canceled && result.assets[0]) {
-      const newAttachment: Attachment = {
-        id: Date.now().toString(),
-        type: 'image',
-        url: result.assets[0].uri,
-        name: 'Image',
-      };
-      setAttachments([...attachments, newAttachment]);
-    }
-  };
-
-  const pickDocument = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', '*/*'],
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        alert('Permission to access media library is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        quality: 1,
       });
 
-      if (!result.canceled) {
-        const asset = result.assets[0];
-        const newAttachment: Attachment = {
-          id: Date.now().toString(),
-          type: asset.mimeType?.includes('pdf') ? 'pdf' : 'file',
-          url: asset.uri,
-          name: asset.name,
-          size: asset.size,
-          mimeType: asset.mimeType,
-        };
-        setAttachments([...attachments, newAttachment]);
+      if (!result.canceled && result.assets[0]) {
+        const selectedAsset = result.assets[0];
+        await onSendFile({
+          uri: selectedAsset.uri,
+          type: selectedAsset.type || 'image/jpeg',
+          name: selectedAsset.fileName || 'file.jpg',
+        }, message);
+        setMessage('');
       }
-    } catch (err) {
-      console.error('Error picking document:', err);
+    } catch (error) {
+      console.error('Error picking file:', error);
+      alert('Failed to pick file');
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
-        <TouchableOpacity onPress={pickDocument} style={styles.button}>
-          <Ionicons name="attach" size={24} color={colors.text} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={pickImage} style={styles.button}>
-          <Ionicons name="image" size={24} color={colors.text} />
-        </TouchableOpacity>
-        
-        <TextInput
-          style={styles.input}
-          value={message}
-          onChangeText={setMessage}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.secondaryText}
-          multiline
-          maxLength={1000}
-          textAlignVertical="center"
-        />
-        
-        <TouchableOpacity
-          onPress={handleSend}
-          style={[
-            styles.button,
-            styles.sendButton,
-            (message.trim() || attachments.length > 0) && styles.sendButtonActive,
-          ]}
-          disabled={!message.trim() && attachments.length === 0}
-        >
-          <Ionicons
-            name="send"
-            size={24}
-            color={message.trim() || attachments.length > 0 ? colors.text : colors.secondaryText}
+      <TouchableOpacity 
+        style={[styles.button, disabled && styles.disabled]} 
+        onPress={handlePickFile}
+        disabled={disabled}
+      >
+        <Ionicons name="attach" size={24} color={disabled ? '#CCCCCC' : '#000000'} />
+      </TouchableOpacity>
+      
+      <TextInput
+        style={[styles.input, disabled && styles.inputDisabled]}
+        placeholder="Type a message..."
+        value={message}
+        onChangeText={setMessage}
+        multiline
+        editable={!disabled}
+        onSubmitEditing={handleSend}
+        returnKeyType="send"
+        blurOnSubmit={false}
+      />
+      
+      <TouchableOpacity 
+        style={[styles.button, disabled && styles.disabled]} 
+        onPress={handleSend}
+        disabled={disabled || message.trim() === ''}
+      >
+        {disabled ? (
+          <ActivityIndicator size="small" color="#CCCCCC" />
+        ) : (
+          <Ionicons 
+            name="send" 
+            size={24} 
+            color={message.trim() === '' ? '#CCCCCC' : '#000000'} 
           />
-        </TouchableOpacity>
-      </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background,
-    borderTopWidth: 3,
-    borderTopColor: colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    shadowColor: colors.border,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-  },
-  inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-  },
-  button: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
+    padding: 10,
     alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 3,
-    borderColor: colors.border,
-    borderRadius: 8,
-    shadowColor: colors.border,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 2,
+    borderColor: '#000000',
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    marginHorizontal: 10,
+    padding: 10,
     maxHeight: 100,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 3,
-    borderColor: colors.border,
-    borderRadius: 8,
-    color: colors.text,
-    shadowColor: colors.border,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#000000',
+    fontSize: 16,
   },
-  sendButton: {
-    backgroundColor: colors.cardBackground,
+  inputDisabled: {
+    backgroundColor: '#EEEEEE',
+    color: '#999999',
   },
-  sendButtonActive: {
-    backgroundColor: colors.primary,
+  button: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  disabled: {
+    opacity: 0.5,
+    backgroundColor: '#F5F5F5',
   },
 });
 
