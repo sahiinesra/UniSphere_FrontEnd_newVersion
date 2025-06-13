@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import React from 'react';
 import {
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { MessageListProps } from '../../types/chat';
 
@@ -46,13 +46,13 @@ const MessageList: React.FC<MessageListProps> = ({
     );
   };
 
-  const renderMessage = (message: typeof messages[0]) => {
+  const renderMessage = (message: typeof messages[0], index: number) => {
     const isCurrentUser = message.senderId === currentUserId;
     const canDelete = isCurrentUser || isLeader;
 
     return (
       <View
-        key={message.id}
+        key={message.id ?? index}
         style={[
           styles.messageContainer,
           isCurrentUser ? styles.userMessageContainer : styles.otherMessageContainer

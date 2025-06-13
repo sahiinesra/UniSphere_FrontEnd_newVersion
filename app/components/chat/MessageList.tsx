@@ -33,9 +33,9 @@ const MessageList: React.FC<MessageListProps> = ({
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      {messages.map((message) => (
+      {messages.map((message, index) => (
         <Message
-          key={message.id}
+          key={message.id || `msg-${index}`}
           message={message}
           onDelete={() => onDeleteMessage(message.id)}
           canDelete={message.userId === currentUserId || isLeader}

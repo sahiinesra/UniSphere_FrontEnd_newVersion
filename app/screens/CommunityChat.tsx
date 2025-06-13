@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { jwtDecode } from 'jwt-decode';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +19,7 @@ import MessageList from '../../components/chat/MessageList';
 import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 
 // Define API URL based on platform
-const API_URL = Platform.select({ 
+const API_URL = Platform.select({
   android: 'http://10.0.2.2:8080',
   ios: 'http://192.168.1.57:8080',
   default: 'http://192.168.1.57:8080'
@@ -32,7 +33,6 @@ const getAccessToken = async () => {
 const CommunityChat = () => {
   const { communityId, communityName, memberCount } = useLocalSearchParams();
   const router = useRouter();
-
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
@@ -40,40 +40,6 @@ const CommunityChat = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [isSending, setIsSending] = useState(false);
-
-  // Initialize WebSocket connection
-  const initializeWebSocket = async () => {
-    const token = await getAccessToken();
-    if (!token) return;
-
-    // <- GÜNCEL
-    const ws = new WebSocket(
-      `ws://192.168.1.57:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
-    );
-
-    console.log("WebSocket Connecting with token.");
-
-    ws.onopen = () => {
-      console.log('WebSocket Connected');
-    };
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setMessages((prev) => (prev ? [...prev, message] : [message]));
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket Error!', error);
-    };
-
-    ws.onclose = (event) => {
-      console.log('WebSocket Disconnected!', event);
-      setTimeout(initializeWebSocket, 3000);
-    };
-
-    wsRef.current = ws;
-  };
 
   // Fetch chat messages
   const fetchMessages = async () => {
@@ -91,7 +57,15 @@ const CommunityChat = () => {
         }
       );
 
-      setMessages(response.data?.data?.length ? response.data.data : []);
+      const fetchedMessages = response.data?.data;
+      if (fetchedMessages && fetchedMessages.length > 0) {
+        const sortedMessages = fetchedMessages.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setMessages(sortedMessages);
+      } else {
+        setMessages([]);
+      }
     } catch (error) {
       console.error('Failed to fetch messages!', error);
       Alert.alert('Error!', 'Failed to load chat messages');
@@ -109,7 +83,7 @@ const CommunityChat = () => {
       const token = await getAccessToken();
       if (!token) return;
 
-      await axios.post(
+      const response = await axios.post(
         `${API_URL}/api/v1/communities/${communityId}/chat/text`,
         { content, messageType: 'TEXT' },
         {
@@ -117,6 +91,7 @@ const CommunityChat = () => {
         }
       );
 
+      // Optimistic update removed to rely on WebSocket for message state
       console.log('Message sent');
     } catch (error) {
       console.error('Failed to send message!', error);
@@ -180,19 +155,78 @@ const CommunityChat = () => {
     }
   };
 
-  // Initialize chat
+  // Get and set the current user ID
   useEffect(() => {
-    const initialize = async () => {
-      await Promise.all([fetchMessages(), initializeWebSocket()]);
+    const getUserId = async () => {
+      const token = await getAccessToken();
+      if (token) {
+        try {
+          const decodedToken: { sub: string } = jwtDecode(token);
+          setCurrentUserId(parseInt(decodedToken.sub, 10));
+        } catch (e) {
+          console.error('Invalid token', e);
+        }
+      }
     };
-    initialize();
+    getUserId();
+  }, []);
+
+  // Initialize chat after user ID is set
+  useEffect(() => {
+    if (currentUserId === undefined) {
+      return; // Wait for user ID to be set
+    }
+
+    // Define WebSocket initialization here to capture correct currentUserId
+    const initWS = async () => {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const ws = new WebSocket(
+        `ws://192.168.1.57:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
+      );
+
+      console.log('WebSocket Connecting with token.');
+
+      ws.onopen = () => {
+        console.log('WebSocket Connected');
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) {
+            return prev; // Message already exists, do not add.
+          }
+          const updatedMessages = [...prev, message];
+          return updatedMessages.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket Error!', error);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket Disconnected!', event);
+        setTimeout(initWS, 3000); // Use the new inner function for reconnect
+      };
+
+      wsRef.current = ws;
+    };
+
+    fetchMessages();
+    initWS();
 
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [communityId]);
+  }, [communityId, currentUserId]);
 
   // Handle back press
   const handleBackPress = () => {
@@ -238,7 +272,7 @@ const CommunityChat = () => {
   );
 };
 
-const styles = StyleSheet.create({ 
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFD700',
@@ -252,6 +286,5 @@ const styles = StyleSheet.create({
   },
 });
 
-// Export
 export default CommunityChat;
 
