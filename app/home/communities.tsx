@@ -1,6 +1,7 @@
+import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { communityService } from '../services/communityService';
 import { getAccessToken } from '../utils/auth';
@@ -78,66 +79,50 @@ export default function Communities() {
     }
   }, [newCommunity]);
 
-  useEffect(() => {
-    const loadCommunities = async () => {
-      try {
-        console.log('Loading communities, showMyCommunities:', showMyCommunities);
-        let response;
-        if (showMyCommunities) {
-          console.log('Fetching my communities...');
-          response = await communityService.getMyCommunities();
-          console.log('My communities response:', response);
-          const myCommunities = response.data.map((community: any) => ({
-            id: community.id.toString(),
-            name: community.name,
-            abbreviation: community.abbreviation,
-            memberCount: community.participantCount,
-            leadId: community.leadId.toString(),
-            logoUri: community.profilePhotoUrl,
-            createdAt: community.createdAt,
-            updatedAt: community.updatedAt
-          }));
-          console.log('Processed my communities:', myCommunities);
-          setCommunities(myCommunities);
-        } else {
-          console.log('Fetching all communities...');
-          response = await communityService.getAllCommunities();
-          console.log('All communities response:', response);
-          const allCommunities = response.data.communities.map((community: any) => ({
-            ...community,
-            memberCount: community.participantCount || 0
-          }));
-          console.log('Processed all communities:', allCommunities);
-          setCommunities(allCommunities);
-        }
-      } catch (error) {
-        console.error('Failed to fetch communities:', error);
-        Alert.alert('Error', 'Failed to retrieve communities.');
-      }
-    };
-
-    loadCommunities();
-  }, [showMyCommunities]);
-
-  // Add a separate useEffect for initial load
-  useEffect(() => {
-    const initialLoad = async () => {
-      try {
-        console.log('Initial load of communities...');
-        const response = await communityService.getAllCommunities();
+  const loadCommunities = async () => {
+    try {
+      console.log('Loading communities, showMyCommunities:', showMyCommunities);
+      let response;
+      if (showMyCommunities) {
+        console.log('Fetching my communities...');
+        response = await communityService.getMyCommunities();
+        console.log('My communities response:', response);
+        const myCommunities = response.data.map((community: any) => ({
+          id: community.id.toString(),
+          name: community.name,
+          abbreviation: community.abbreviation,
+          memberCount: community.participantCount,
+          leadId: community.leadId.toString(),
+          logoUri: community.profilePhotoUrl,
+          createdAt: community.createdAt,
+          updatedAt: community.updatedAt
+        }));
+        console.log('Processed my communities:', myCommunities);
+        setCommunities(myCommunities);
+      } else {
+        console.log('Fetching all communities...');
+        response = await communityService.getAllCommunities();
+        console.log('All communities response:', response);
         const allCommunities = response.data.communities.map((community: any) => ({
           ...community,
           memberCount: community.participantCount || 0
         }));
+        console.log('Processed all communities:', allCommunities);
         setCommunities(allCommunities);
-      } catch (error) {
-        console.error('Failed to fetch initial communities:', error);
-        Alert.alert('Error', 'Failed to retrieve communities.');
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch communities:', error);
+      Alert.alert('Error', 'Failed to retrieve communities.');
+    }
+  };
 
-    initialLoad();
-  }, []);
+  // Use useFocusEffect to refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen focused, refreshing communities...');
+      loadCommunities();
+    }, [showMyCommunities])
+  );
 
   const handleCommunityPress = (communityId: string) => {
     router.push(`/home/community/${communityId}`);
