@@ -19,7 +19,7 @@ const Notifications = () => {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://10.22.123.129:8000/scraping/scrape-announcements', {
+      const response = await axios.get('http://192.168.1.57:8000/scraping/scrape-announcements', {
         headers: {
           'Content-Type': 'application/json',
         },

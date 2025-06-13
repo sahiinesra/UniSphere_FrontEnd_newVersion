@@ -1,8 +1,7 @@
-import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { communityService } from '../services/communityService';
 
 // Define colors to match the application theme
 const colors = {
@@ -25,31 +24,11 @@ export type Community = {
   leadId?: string;
 };
 
-// Initial mock data for communities
-const initialMockCommunities: Community[] = [
-  {
-    id: '1',
-    name: 'Computer Science Society',
-    category: 'Academic Clubs',
-    memberCount: 150,
-    abbreviation: 'CSS',
-  },
-  {
-    id: '2',
-    name: 'Photography Club',
-    category: 'Arts & Culture',
-    memberCount: 75,
-    abbreviation: 'PC',
-  },
-  // Add more mock communities as needed
-];
-
 export default function Communities() {
   const router = useRouter();
   const { newCommunity } = useLocalSearchParams();
   const [showMyCommunities, setShowMyCommunities] = useState(false);
-  const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
-  const [communities, setCommunities] = useState<Community[]>(initialMockCommunities);
+  const [communities, setCommunities] = useState<Community[]>([]);
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [updateFormData, setUpdateFormData] = useState({
@@ -68,62 +47,71 @@ export default function Communities() {
     }
   }, [newCommunity]);
 
-  const getAccessToken = async () => {
-    const token = await SecureStore.getItemAsync('accessToken');
-    return token;
-  };
-
-  const fetchCommunities = async (page = 1, size = 10) => {
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        Alert.alert('Error', 'JWT token not found.');
-        return [];
-      }
-
-      const response = await axios.get(
-        `http://10.22.123.129:8080/api/v1/communities?page=${page}&pageSize=${size}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const communities = response.data.data.communities.map((community: any) => ({
-        ...community,
-        memberCount: community.participantCount || 0
-      }));
-
-      console.log('Fetched Communities:', JSON.stringify(communities, null, 2));
-      return communities;
-
-    } catch (error) {
-      console.error('Failed to fetch communities:', error);
-      Alert.alert('Error', 'Failed to retrieve communities.');
-      return [];
-    }
-  };
-
   useEffect(() => {
     const loadCommunities = async () => {
-      const data = await fetchCommunities();
-      setCommunities(data);
+      try {
+        console.log('Loading communities, showMyCommunities:', showMyCommunities);
+        let response;
+        if (showMyCommunities) {
+          console.log('Fetching my communities...');
+          response = await communityService.getMyCommunities();
+          console.log('My communities response:', response);
+          const myCommunities = response.data.map((community: any) => ({
+            id: community.id.toString(),
+            name: community.name,
+            abbreviation: community.abbreviation,
+            memberCount: community.participantCount,
+            leadId: community.leadId.toString(),
+            logoUri: community.profilePhotoUrl,
+            createdAt: community.createdAt,
+            updatedAt: community.updatedAt
+          }));
+          console.log('Processed my communities:', myCommunities);
+          setCommunities(myCommunities);
+        } else {
+          console.log('Fetching all communities...');
+          response = await communityService.getAllCommunities();
+          console.log('All communities response:', response);
+          const allCommunities = response.data.communities.map((community: any) => ({
+            ...community,
+            memberCount: community.participantCount || 0
+          }));
+          console.log('Processed all communities:', allCommunities);
+          setCommunities(allCommunities);
+        }
+      } catch (error) {
+        console.error('Failed to fetch communities:', error);
+        Alert.alert('Error', 'Failed to retrieve communities.');
+      }
     };
+
     loadCommunities();
+  }, [showMyCommunities]);
+
+  // Add a separate useEffect for initial load
+  useEffect(() => {
+    const initialLoad = async () => {
+      try {
+        console.log('Initial load of communities...');
+        const response = await communityService.getAllCommunities();
+        const allCommunities = response.data.communities.map((community: any) => ({
+          ...community,
+          memberCount: community.participantCount || 0
+        }));
+        setCommunities(allCommunities);
+      } catch (error) {
+        console.error('Failed to fetch initial communities:', error);
+        Alert.alert('Error', 'Failed to retrieve communities.');
+      }
+    };
+
+    initialLoad();
   }, []);
 
   const handleCommunityPress = (communityId: string) => {
     router.push(`/home/community/${communityId}`);
   };
 
-  //handle join community
-  
-
-
-
-  //update community
   const handleUpdateCommunity = (community: Community) => {
     setSelectedCommunity(community);
     setUpdateFormData({
@@ -137,30 +125,14 @@ export default function Communities() {
     if (!selectedCommunity) return;
 
     try {
-      const token = await getAccessToken();
-      if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
-        return;
-      }
+      await communityService.updateCommunity(selectedCommunity.id, {
+        name: updateFormData.name.trim(),
+        abbreviation: updateFormData.abbreviation.trim(),
+        description: selectedCommunity.description || 'Community Description',
+        category: selectedCommunity.category || 'ACADEMIC',
+        leadId: selectedCommunity.leadId || '1'
+      });
 
-      const response = await axios.put(
-        `http://10.22.123.129:8080/api/v1/communities/${selectedCommunity.id}`,
-        {
-          name: updateFormData.name.trim(),
-          abbreviation: updateFormData.abbreviation.trim(),
-          description: selectedCommunity.description || 'Community Description',
-          category: selectedCommunity.category || 'ACADEMIC',
-          leadId: selectedCommunity.leadId || '1'
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      // Update the communities list with the updated community
       setCommunities(prevCommunities =>
         prevCommunities.map(community =>
           community.id === selectedCommunity.id
@@ -181,25 +153,9 @@ export default function Communities() {
     }
   };
 
-  //delete community
   const handleDeleteCommunity = async (communityId: string) => {
     try {
-      const token = await getAccessToken();
-      if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
-        return;
-      }
-
-      await axios.delete(
-        `http://10.22.123.129:8080/api/v1/communities/${communityId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      
+      await communityService.deleteCommunity(communityId);
       setCommunities(prev => prev.filter(c => c.id !== communityId));
       Alert.alert('Success', 'Community deleted successfully!');
     } catch (error: any) {
@@ -207,10 +163,6 @@ export default function Communities() {
       Alert.alert('Error', 'Failed to delete community. Please try again.');
     }
   };
-
-  const displayedCommunities = showMyCommunities
-    ? communities.filter(c => joinedCommunities.includes(c.id))
-    : communities;
 
   return (
     <>
@@ -243,7 +195,7 @@ export default function Communities() {
         </TouchableOpacity>
 
         <ScrollView style={styles.scrollView}>
-          {displayedCommunities.map((community) => (
+          {communities.map((community) => (
             <View key={community.id} style={styles.card}>
               <TouchableOpacity 
                 onPress={() => handleCommunityPress(community.id)}

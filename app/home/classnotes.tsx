@@ -524,7 +524,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.get(
-        'http://10.22.123.129:8080/api/v1/class-notes',
+        'http://192.168.1.57:8080/api/v1/class-notes',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -613,7 +613,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.post(
-        'http://10.22.123.129:8080/api/v1/class-notes',
+        'http://192.168.1.57:8080/api/v1/class-notes',
         formDataObj,
         {
           headers: {
@@ -655,7 +655,7 @@ export default function ClassNotes() {
       }
   
       const response = await axios.put(
-        `http://192.168.0.24:8080/api/v1/class-notes/${formData.noteId}`,
+        `http://192.168.1.57:8080/api/v1/class-notes/${formData.noteId}`,
         {
           content: formData.content,
           courseCode: formData.courseCode,
@@ -699,7 +699,7 @@ export default function ClassNotes() {
       }
   
       const response = await axios.delete(
-        `http://192.168.0.24:8080/api/v1/class-notes/${noteId}`,
+        `http://192.168.1.57:8080/api/v1/class-notes/${noteId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -764,7 +764,7 @@ export default function ClassNotes() {
 
       // First get the file details from the API
       const response = await axios.get(
-        `http://192.168.0.24:8080/api/v1/files/${fileId}`,
+        `http://192.168.1.57:8080/api/v1/files/${fileId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -776,7 +776,7 @@ export default function ClassNotes() {
         // Replace localhost with the production URL
         const fileUrl = response.data.data.fileUrl.replace(
           'http://localhost:8080',
-          'http://192.168.0.24:8080'
+          'http://192.168.1.57:8080'
         );
 
         const supported = await Linking.canOpenURL(fileUrl);

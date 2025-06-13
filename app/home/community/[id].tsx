@@ -3,10 +3,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // API configuration
-const API_URL = 'http://10.22.123.129:8080';
+const API_URL = 'http://192.168.1.57:8080';
 
 interface CommunityDetails {
   id: string;
@@ -27,20 +27,22 @@ const CommunityDetails = () => {
   const [hasProfilePhoto, setHasProfilePhoto] = useState(false);
   const [communityData, setCommunityData] = useState<CommunityDetails | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isInstructor, setIsInstructor] = useState(false);
 
   const getAccessToken = async () => {
     const token = await SecureStore.getItemAsync('accessToken');
     return token;
   };
 
-  // Fetch user profile to get user id
+  // Fetch user profile to get user id and role
   const fetchUserProfile = async () => {
     try {
       const token = await getAccessToken();
       if (!token) return null;
 
       const response = await axios.get(
-        'http://10.22.123.129:8080/api/v1/users/profile',
+        'http://192.168.1.57:8080/api/v1/users/profile',
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -60,6 +62,11 @@ const CommunityDetails = () => {
       const idStr = userData.id.toString();
       console.log('Setting user id to:', idStr);
       setCurrentUserId(idStr);
+      
+      // Set user role and check if instructor
+      setUserRole(userData.role);
+      setIsInstructor(userData.role === 'INSTRUCTOR');
+      
       return idStr;
     } catch (error: any) {
       console.error('Failed to fetch user profile:', error.response?.data || error);
@@ -260,15 +267,15 @@ const CommunityDetails = () => {
   };
 
   const handleUpdatePhoto = async () => {
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
-        return;
-      }
+    if (!isInstructor) {
+      Alert.alert('Permission Denied', 'Only instructors can update community logo.');
+      return;
+    }
 
+    try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
+      
+      if (permissionResult.granted === false) {
         Alert.alert('Permission Required', 'Permission to access camera roll is required!');
         return;
       }
@@ -278,37 +285,79 @@ const CommunityDetails = () => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 1,
+        allowsMultipleSelection: false,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const selectedAsset = result.assets[0];
-        const extension = selectedAsset.uri.split('.').pop()?.toLowerCase() || 'jpg';
-        
-        const formData = new FormData();
-        formData.append('profilePhoto', {
-          uri: selectedAsset.uri,
-          type: `image/${extension}`,
-          name: `profile.${extension}`,
-        } as any);
+        setLoading(true);
+        try {
+          const token = await getAccessToken();
+          if (!token) return;
 
-        await axios.post(
-          `${API_URL}/api/v1/communities/${id}/photo`,
-          formData,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
+          const selectedAsset = result.assets[0];
+          console.log('Selected image:', selectedAsset);
+
+          // Create FormData with the correct structure
+          const formData = new FormData();
+          const photoData = {
+            uri: Platform.OS === 'ios' ? selectedAsset.uri.replace('file://', '') : selectedAsset.uri,
+            type: selectedAsset.type || 'image/jpeg',
+            name: 'community_logo.jpg'
+          };
+          
+          formData.append('profilePhoto', photoData as any);
+
+          // Log FormData contents
+          console.log('FormData contents:');
+          for (let [key, value] of (formData as any).entries()) {
+            console.log(`${key}:`, value);
+            console.log('Value details:', {
+              uri: value.uri,
+              type: value.type,
+              name: value.name
+            });
           }
-        );
 
-        // Refresh community details to get the new photo URL
-        await fetchCommunityDetails();
-        Alert.alert('Success', 'Community photo updated successfully!');
+          // Update community logo
+          const response = await axios.post(
+            `${API_URL}/api/v1/communities/${id}/profile-photo`,
+            formData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data',
+              },
+            }
+          );
+
+          console.log('Upload response:', response.data);
+
+          // Update community data with the new photo info
+          if (response.data?.data) {
+            const updatedCommunity = response.data.data;
+            setCommunityData(prevData => ({
+              ...prevData!,
+              profilePhotoFileId: updatedCommunity.profilePhotoFileId,
+              profilePhotoUrl: updatedCommunity.profilePhotoUrl,
+              updatedAt: updatedCommunity.updatedAt
+            }));
+            setHasProfilePhoto(!!updatedCommunity.profilePhotoUrl);
+          }
+
+          Alert.alert('Success', 'Community logo updated successfully');
+        } catch (error: any) {
+          console.error('Failed to update community logo:', error.response?.data || error);
+          const errorMessage = error.response?.data?.message 
+            || error.response?.data?.error?.message 
+            || 'Failed to update community logo. Please try again.';
+          Alert.alert('Error', errorMessage);
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (error: any) {
-      console.error('Error updating photo:', error);
-      Alert.alert('Error', 'Failed to update community photo');
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -377,23 +426,29 @@ const CommunityDetails = () => {
             )}
           </View>
           
-          <View style={styles.photoButtons}>
-            <TouchableOpacity 
-              style={[styles.photoButton, styles.updateButton]} 
-              onPress={handleUpdatePhoto}
-            >
-              <Text style={styles.buttonText}>Update Logo</Text>
-            </TouchableOpacity>
-            
-            {hasProfilePhoto && (
+          {isInstructor && (
+            <View style={styles.photoButtons}>
               <TouchableOpacity 
-                style={[styles.photoButton, styles.deleteButton]} 
-                onPress={handleDeletePhoto}
+                style={[styles.photoButton, styles.updateButton, loading && styles.disabled]} 
+                onPress={handleUpdatePhoto}
+                disabled={loading}
               >
-                <Text style={styles.buttonText}>Delete Logo</Text>
+                <Text style={styles.buttonText}>
+                  {loading ? 'Updating...' : 'Update Logo'}
+                </Text>
               </TouchableOpacity>
-            )}
-          </View>
+              
+              {hasProfilePhoto && (
+                <TouchableOpacity 
+                  style={[styles.photoButton, styles.deleteButton, loading && styles.disabled]} 
+                  onPress={handleDeletePhoto}
+                  disabled={loading}
+                >
+                  <Text style={styles.buttonText}>Delete Logo</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={styles.infoSection}>

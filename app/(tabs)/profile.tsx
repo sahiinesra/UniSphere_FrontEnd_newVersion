@@ -22,7 +22,7 @@ import {
 
 // Axios instance configuration
 const api = axios.create({
-  baseURL: 'http://10.22.123.129:8080/api/v1',
+  baseURL: 'http://192.168.1.57:8080/api/v1',
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
@@ -321,7 +321,7 @@ const Profile = () => {
         
         // Replace localhost URL with the correct server URL
         const photoUrl = profileData.profilePhotoUrl ? 
-          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://10.22.123.129:8080') : 
+          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://192.168.1.57:8080') : 
           null;
 
         console.log('Adjusted photo URL:', photoUrl);
@@ -423,7 +423,7 @@ const Profile = () => {
         console.log('Uploading photo with token:', token);
 
         const response = await axios.post(
-          'http://10.22.123.129:8080/api/v1/users/profile/photo',
+          'http://192.168.1.57:8080/api/v1/users/profile/photo',
           formData,
           {
             headers: {
@@ -447,7 +447,7 @@ const Profile = () => {
         
         // Replace localhost URL with the correct server URL
         const photoUrl = profileData.profilePhotoUrl ? 
-          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://10.22.123.129:8080') : 
+          profileData.profilePhotoUrl.replace('http://localhost:8080', 'http://192.168.1.57:8080') : 
           null;
 
         console.log('Adjusted photo URL after upload:', photoUrl);
@@ -481,7 +481,7 @@ const Profile = () => {
       }
 
       // Delete photo from backend
-      await axios.delete('http://10.22.123.129:8080/api/v1/users/profile/photo', {
+      await axios.delete('http://192.168.1.57:8080/api/v1/users/profile/photo', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

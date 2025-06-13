@@ -117,7 +117,7 @@ export default function PastExams() {
       }
 
       const response = await axios.get(
-        `http://192.168.0.24:8080/api/v1/past-exams`,
+        `http://192.168.1.57:8080/api/v1/past-exams`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -168,7 +168,7 @@ export default function PastExams() {
       }
 
       const response = await axios.post(
-        'http://192.168.0.24:8080/api/v1/past-exams',
+        'http://192.168.1.57:8080/api/v1/past-exams',
         formDataObj,
         {
           headers: {
@@ -211,7 +211,7 @@ export default function PastExams() {
       }
   
       const response = await axios.put(
-        `http://192.168.0.24:8080/api/v1/past-exams/${currentExam.id}`,
+        `http://192.168.1.57:8080/api/v1/past-exams/${currentExam.id}`,
         {
           year: parseInt(formData.year, 10),
           term: formData.term,
@@ -260,7 +260,7 @@ export default function PastExams() {
       }
   
       const response = await axios.delete(
-        `http://192.168.0.24:8080/api/v1/past-exams/${examId}`,
+        `http://192.168.1.57:8080/api/v1/past-exams/${examId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -350,7 +350,7 @@ export default function PastExams() {
 
       // First get the file details from the API
       const response = await axios.get(
-        `http://192.168.0.24:8080/api/v1/files/${fileId}`,
+        `http://192.168.1.57:8080/api/v1/files/${fileId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -362,7 +362,7 @@ export default function PastExams() {
         // Replace localhost with the production URL
         const fileUrl = response.data.data.fileUrl.replace(
           'http://localhost:8080',
-          'http://192.168.0.24:8080'
+          'http://192.168.1.57:8080'
         );
 
         const supported = await Linking.canOpenURL(fileUrl);
