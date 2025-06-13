@@ -37,6 +37,9 @@ const CommunityChat = () => {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
   const [isLeader, setIsLeader] = useState(false);
+  const [userMap, setUserMap] = useState<{ [id: number]: string }>({});
+  const userMapRef = useRef(userMap);
+  userMapRef.current = userMap;
   const scrollViewRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -63,6 +66,16 @@ const CommunityChat = () => {
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         setMessages(sortedMessages);
+
+        // Populate user map from fetched messages
+        const newUserMap = { ...userMap };
+        sortedMessages.forEach((message) => {
+          if (message.senderId && message.senderName && !newUserMap[message.senderId]) {
+            newUserMap[message.senderId] = message.senderName;
+          }
+        });
+        setUserMap(newUserMap);
+
       } else {
         setMessages([]);
       }
@@ -177,26 +190,38 @@ const CommunityChat = () => {
       return; // Wait for user ID to be set
     }
 
-    // Define WebSocket initialization here to capture correct currentUserId
-    const initWS = async () => {
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+
+    const connect = async () => {
       const token = await getAccessToken();
       if (!token) return;
 
-      const ws = new WebSocket(
+      ws = new WebSocket(
         `ws://192.168.1.57:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
       );
-
-      console.log('WebSocket Connecting with token.');
+      wsRef.current = ws;
 
       ws.onopen = () => {
         console.log('WebSocket Connected');
       };
 
       ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
+        const receivedData = JSON.parse(event.data);
+        const message: ChatMessage = {
+          id: receivedData.id,
+          communityId: receivedData.communityId,
+          senderId: receivedData.senderId,
+          content: receivedData.content,
+          createdAt: receivedData.timestamp,
+          updatedAt: receivedData.timestamp,
+          messageType: receivedData.type?.toUpperCase() || 'TEXT',
+          senderName: userMapRef.current[receivedData.senderId] || '...',
+        };
+
         setMessages((prev) => {
           if (prev.some((m) => m.id === message.id)) {
-            return prev; // Message already exists, do not add.
+            return prev;
           }
           const updatedMessages = [...prev, message];
           return updatedMessages.sort(
@@ -210,21 +235,25 @@ const CommunityChat = () => {
         console.error('WebSocket Error!', error);
       };
 
-      ws.onclose = (event) => {
-        console.log('WebSocket Disconnected!', event);
-        setTimeout(initWS, 3000); // Use the new inner function for reconnect
+      ws.onclose = () => {
+        console.log('WebSocket Disconnected! Attempting to reconnect...');
+        ws = null;
+        reconnectTimeout = setTimeout(connect, 3000);
       };
-
-      wsRef.current = ws;
     };
 
     fetchMessages();
-    initWS();
+    connect();
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
+      if (ws) {
+        ws.onclose = null; // Prevent onclose from firing during manual close
+        ws.close();
+      }
+      wsRef.current = null;
     };
   }, [communityId, currentUserId]);
 
