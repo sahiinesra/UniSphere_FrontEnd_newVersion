@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -75,15 +76,19 @@ export default function PastExams() {
     examId: ''
   });
 
-  useEffect(() => {
-    const loadExams = async () => {
-      const data = await fetchPastExams();
-      setExams(data);
-      setFilteredExams(data);
-    };
+  const loadExams = async () => {
+    const data = await fetchPastExams();
+    setExams(data);
+    setFilteredExams(data);
+  };
 
-    loadExams();
-  }, []);
+  // Use useFocusEffect to refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen focused, refreshing past exams...');
+      loadExams();
+    }, [])
+  );
 
   // Handle search
   const handleSearch = (text: string) => {
@@ -253,13 +258,12 @@ export default function PastExams() {
   const handleDeleteExam = async (examId: string) => {
     try {
       const token = await getAccessToken();
-  
       if (!token) {
         Alert.alert('Error', 'JWT token not found.');
         return;
       }
-  
-      const response = await axios.delete(
+
+      await axios.delete(
         `http://192.168.1.57:8080/api/v1/past-exams/${examId}`,
         {
           headers: {
@@ -268,17 +272,19 @@ export default function PastExams() {
           },
         }
       );
-  
-      const message = response.data?.data?.message;
-      console.log('Delete success:', message);
-  
-      const updatedExams = exams.filter((exam) => exam.id !== examId);
-      setExams(updatedExams);
-      setFilteredExams(updatedExams);
-  
+
+      // Close the delete modal first
+      setDeleteModalVisible(false);
+      setCurrentExam(null);
+
+      // Then fetch fresh data
+      const updatedExamsList = await fetchPastExams();
+      setExams(updatedExamsList);
+      setFilteredExams(updatedExamsList);
+
       Alert.alert('Success', 'Exam deleted successfully!');
     } catch (error: any) {
-      console.error('Delete exam error:', error);
+      console.error('Delete exam error:', error.response?.data || error.message);
       Alert.alert('Error', 'Failed to delete exam.');
     }
   };
