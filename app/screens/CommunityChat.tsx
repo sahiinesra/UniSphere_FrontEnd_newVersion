@@ -21,8 +21,8 @@ import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 // Define API URL based on platform
 const API_URL = Platform.select({
   android: 'http://10.0.2.2:8080',
-  ios: 'http://192.168.1.57:8080',
-  default: 'http://192.168.1.57:8080'
+  ios: 'http://192.168.1.136:8080',
+  default: 'http://192.168.1.136:8080'
 });
 
 // Get access token
@@ -96,7 +96,7 @@ const CommunityChat = () => {
       const token = await getAccessToken();
       if (!token) return;
 
-      const response = await axios.post(
+      await axios.post(
         `${API_URL}/api/v1/communities/${communityId}/chat/text`,
         { content, messageType: 'TEXT' },
         {
@@ -198,7 +198,7 @@ const CommunityChat = () => {
       if (!token) return;
 
       ws = new WebSocket(
-        `ws://192.168.1.57:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
+        `ws://192.168.1.136:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
       );
       wsRef.current = ws;
 
@@ -255,7 +255,7 @@ const CommunityChat = () => {
       }
       wsRef.current = null;
     };
-  }, [communityId, currentUserId]);
+  }, [communityId, currentUserId, fetchMessages, userMap]);
 
   // Handle back press
   const handleBackPress = () => {

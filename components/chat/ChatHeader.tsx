@@ -39,10 +39,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </Text>
           </View>
         </View>
-
-        <TouchableOpacity style={styles.infoButton}>
-          <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -116,21 +112,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondaryText,
     fontWeight: '600',
-  },
-  infoButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 3,
-    borderColor: colors.border,
-    borderRadius: 8,
-    shadowColor: colors.border,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
+  }
 });
 
 export default ChatHeader; 

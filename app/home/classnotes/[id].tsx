@@ -45,7 +45,7 @@ export default function ClassNoteDetail() {
       }
 
       const response = await axios.get(
-        `http://192.168.1.57:8080/api/v1/class-notes/${id}`,
+        `http://192.168.1.136:8080/api/v1/class-notes/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

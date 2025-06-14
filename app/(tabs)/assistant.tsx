@@ -3,29 +3,29 @@ import axios from 'axios';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  ListRenderItem,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    ListRenderItem,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Define API URL based on platform
 const API_URL = Platform.select({
   android: 'http://10.0.2.2:8087',  // Android Emulator
-  ios: 'http://192.168.1.57:8087',     // iOS Simulator
-  default: 'http://192.168.1.57:8087'  // Web/default
+  ios: 'http://192.168.1.136:8087',     // iOS Simulator
+  default: 'http://192.168.1.136:8087'  // Web/default
 });
 
 // API endpoint
-const ASK_ENDPOINT = `http://192.168.1.57:8087/ask`;
+const ASK_ENDPOINT = `http://192.168.1.136:8087/ask`;
 
 // Define types for our data
 interface ChatMessage {
