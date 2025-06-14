@@ -19,18 +19,11 @@ const Notifications = () => {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://192.168.1.136:8000/scraping/scrape-announcements', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      });
-    
+      const response = await axios.get('http://192.168.0.22:8000/scraping/scrape-announcements'); 
       setAnnouncements(response.data.announcements);
-   
     } catch (error: any) {
-      console.error('Hata:', error);
-      Alert.alert('Hata', 'Duyurular alınamadı: ' + error.message);
+      console.error('Hata!', error);
+      Alert.alert('Hata!', 'Duyurular alınmadı: ' + error.message);
     } finally {
       setLoading(false);
     }
