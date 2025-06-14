@@ -640,10 +640,18 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    // Implementation for logging out the user
-    // This will navigate back to the login screen
-    router.replace('/login');
+  const handleLogout = async () => {
+    try {
+      // Clear all stored tokens
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
+      
+      // Navigate back to login screen
+      router.replace('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      Alert.alert('Error', 'Failed to logout properly. Please try again.');
+    }
   };
 
   return (
