@@ -7,64 +7,112 @@ interface MessageProps {
   message: ChatMessage;
   onDelete: () => void;
   canDelete: boolean;
+  currentUserId?: number;
 }
 
-const Message: React.FC<MessageProps> = ({ message, onDelete, canDelete }) => {
+const Message: React.FC<MessageProps> = ({ message, onDelete, canDelete, currentUserId }) => {
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+
+  const isOwnMessage = message.userId === currentUserId;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.messageContent}>
-        <Text style={styles.username}>{message.username}</Text>
-        <Text style={styles.text}>{message.content}</Text>
-        <Text style={styles.timestamp}>
-          {new Date(message.createdAt).toLocaleTimeString()}
-        </Text>
+    <View style={[
+      styles.container,
+      isOwnMessage ? styles.ownContainer : styles.otherContainer
+    ]}>
+      <View style={[
+        styles.bubble,
+        isOwnMessage ? styles.ownBubble : styles.otherBubble
+      ]}>
+        {!isOwnMessage && (
+          <Text style={styles.username}>{message.username}</Text>
+        )}
+        <Text style={styles.messageText}>{message.content}</Text>
+        <View style={styles.bottomRow}>
+          <Text style={styles.time}>{formatDate(message.createdAt)}</Text>
+          {canDelete && (
+            <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+              <MaterialIcons name="delete-outline" size={16} color="#888888" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-      {canDelete && (
-        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-          <MaterialIcons name="delete" size={20} color="#ff4444" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginVertical: 2,
+    paddingHorizontal: 8,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
+    width: '100%',
+  },
+  ownContainer: {
+    justifyContent: 'flex-end',
+  },
+  otherContainer: {
+    justifyContent: 'flex-start',
+  },
+  bubble: {
+    maxWidth: '75%',
+    minWidth: '30%',
+    padding: 8,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 1,
+    elevation: 1,
   },
-  messageContent: {
-    flex: 1,
+  ownBubble: {
+    backgroundColor: '#E7FFDB',
+    borderTopRightRadius: 2,
+  },
+  otherBubble: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 2,
   },
   username: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 4,
-  },
-  text: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 4,
-  },
-  timestamp: {
     fontSize: 12,
-    color: '#999',
+    fontWeight: '600',
+    color: '#5B5B5B',
+    marginBottom: 2,
+  },
+  messageText: {
+    fontSize: 15,
+    color: '#000000',
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  time: {
+    fontSize: 11,
+    color: '#8C8C8C',
+    marginRight: 4,
   },
   deleteButton: {
-    padding: 8,
+    padding: 2,
+    marginLeft: 4,
   },
 });
 

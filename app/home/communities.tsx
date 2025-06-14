@@ -47,7 +47,7 @@ export default function Communities() {
       if (!token) return;
 
       const response = await axios.get(
-        'http://192.168.1.136:8080/api/v1/users/profile',
+        'http://192.168.0.22:8080/api/v1/users/profile',
         {
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import Message from './Message';
@@ -18,6 +18,15 @@ const MessageList: React.FC<MessageListProps> = ({
   currentUserId,
   isLeader,
 }) => {
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
   if (!messages) {
     return (
       <View style={styles.welcomeContainer}>
@@ -32,6 +41,8 @@ const MessageList: React.FC<MessageListProps> = ({
       ref={scrollViewRef}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
+      onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
     >
       {messages.map((message, index) => (
         <Message
@@ -39,6 +50,7 @@ const MessageList: React.FC<MessageListProps> = ({
           message={message}
           onDelete={() => onDeleteMessage(message.id)}
           canDelete={message.userId === currentUserId || isLeader}
+          currentUserId={currentUserId}
         />
       ))}
     </ScrollView>
@@ -48,28 +60,28 @@ const MessageList: React.FC<MessageListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#EFEAE2', // WhatsApp benzeri arka plan rengi
   },
   contentContainer: {
-    padding: 10,
+    paddingVertical: 16,
   },
   welcomeContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#EFEAE2',
     padding: 20,
   },
   welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#075E54', // WhatsApp yeşili
     marginBottom: 10,
     textAlign: 'center',
   },
   welcomeSubText: {
     fontSize: 16,
-    color: '#666',
+    color: '#666666',
     textAlign: 'center',
   }
 });
