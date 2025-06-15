@@ -1,12 +1,15 @@
 export interface ChatMessage {
   id: number;
   content: string;
-  userId: number;
-  username: string;
   messageType: 'TEXT' | 'FILE';
   fileUrl?: string;
   createdAt: string;
   updatedAt: string;
+  senderId: number;
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  profilePhotoUrl?: string | null;
 }
 
 export interface ChatMessageResponse {
