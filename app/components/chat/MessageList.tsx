@@ -18,12 +18,10 @@ const MessageList: React.FC<MessageListProps> = ({
   currentUserId,
   isLeader,
 }) => {
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change or component mounts
   useEffect(() => {
     if (messages && messages.length > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      scrollViewRef.current?.scrollToEnd({ animated: false });
     }
   }, [messages]);
 
@@ -44,6 +42,7 @@ const MessageList: React.FC<MessageListProps> = ({
         styles.contentContainer,
         { flexDirection: 'column-reverse' }
       ]}
+      onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
       onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
     >
       {messages.map((message, index) => (

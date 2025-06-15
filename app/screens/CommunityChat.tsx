@@ -122,6 +122,11 @@ const CommunityChat = () => {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
       });
+
+      // Scroll to bottom after messages are loaded
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     } catch (error) {
       console.error('Failed to fetch messages!', error);
       Alert.alert('Error!', 'Failed to load chat messages');
