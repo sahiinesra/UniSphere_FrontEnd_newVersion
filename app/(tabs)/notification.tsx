@@ -19,7 +19,7 @@ const Notifications = () => {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://192.168.0.22:8000/scraping/scrape-announcements'); 
+      const response = await axios.get('http://10.200.0.7:8000/scraping/scrape-announcements'); 
       setAnnouncements(response.data.announcements);
     } catch (error: any) {
       console.error('Hata!', error);

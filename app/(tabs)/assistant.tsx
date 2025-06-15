@@ -20,12 +20,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // Define API URL based on platform
 const API_URL = Platform.select({
   android: 'http://10.0.2.2:8087',  // Android Emulator
-  ios: 'http://192.168.1.136:8087',     // iOS Simulator
-  default: 'http://192.168.1.136:8087'  // Web/default
+  ios: 'http://10.200.0.7:8087',     // iOS Simulator
+  default: 'http://10.200.0.7:8087'  // Web/default
 });
 
 // API endpoint
-const ASK_ENDPOINT = `http://192.168.1.136:8087/ask`;
+const ASK_ENDPOINT = `http://10.200.0.7:8087/ask`;
 
 // Define types for our data
 interface ChatMessage {

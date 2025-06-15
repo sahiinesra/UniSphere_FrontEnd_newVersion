@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // API configuration
-const API_URL = 'http://192.168.0.22:8080';
+const API_URL = 'http://10.200.0.7:8080';
 
 export default function CreateCommunity() {
   const router = useRouter();

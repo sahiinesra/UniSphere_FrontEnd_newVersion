@@ -3,17 +3,17 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // Neo-Brutalism Color Palette (Matching app design)
@@ -164,7 +164,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://192.168.0.22:8080/api/v1/auth/register', {
+      const response = await axios.post('http://10.200.0.7:8080/api/v1/auth/register', {
         departmentId: 1,
         email,
         firstName,

@@ -40,9 +40,11 @@ const MessageList: React.FC<MessageListProps> = ({
     <ScrollView
       ref={scrollViewRef}
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { flexDirection: 'column-reverse' }
+      ]}
+      onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
     >
       {messages.map((message, index) => (
         <Message

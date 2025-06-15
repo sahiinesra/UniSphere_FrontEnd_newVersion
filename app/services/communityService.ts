@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAccessToken } from '../utils/auth';
 
-const BASE_URL = 'http://192.168.0.22:8080/api/v1';
+const BASE_URL = 'http://10.200.0.7:8080/api/v1';
 
 export const communityService = {
   getAllCommunities: async (page = 1, size = 10) => {

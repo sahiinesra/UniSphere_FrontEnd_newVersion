@@ -3,14 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import ChatHeader from '../../components/chat/ChatHeader';
 import ChatInput from '../../components/chat/ChatInput';
@@ -18,7 +18,7 @@ import MessageList from '../../components/chat/MessageList';
 import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 
 // Define API URL based on platform
-const API_URL = 'http://192.168.0.22:8080';
+const API_URL = 'http://10.200.0.7:8080';
 
 // Get access token
 const getAccessToken = async () => {
@@ -44,7 +44,7 @@ const CommunityChat = () => {
 
     // <- GÜNCEL
     const ws = new WebSocket(
-      `ws://192.168.0.22:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
+      `ws://10.200.0.7:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
     );
 
     console.log("WebSocket Connecting with token.");
@@ -64,9 +64,13 @@ const CommunityChat = () => {
           return prev;
         }
         
-        return [...prev, message];
+        // Add new message at the beginning
+        return [message, ...prev];
       });
-      scrollViewRef.current?.scrollToEnd({ animated: true });
+      // Scroll to bottom for new messages
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     };
 
     ws.onerror = (error) => {
@@ -102,7 +106,9 @@ const CommunityChat = () => {
       // Deduplicate messages by ID when setting initial messages
       setMessages((prev) => {
         if (!prev || prev.length === 0) {
-          return fetchedMessages;
+          return fetchedMessages.sort((a, b) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
         }
         
         // Merge and deduplicate messages
@@ -111,7 +117,7 @@ const CommunityChat = () => {
           array.findIndex(m => m.id === message.id) === index
         );
         
-        // Sort by creation date to maintain chronological order
+        // Sort by creation date to maintain chronological order (oldest to newest)
         return uniqueMessages.sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
