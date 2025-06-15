@@ -3,17 +3,17 @@ import axios from 'axios';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    ListRenderItem,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  ListRenderItem,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,7 +40,7 @@ const initialChatMessages: ChatMessage[] = [
   {
     id: '1',
     sender: 'ai',
-    message: 'Hello! I am your UniSphere assistant. How can I help you today?',
+    message: 'Merhaba ! Ben sanal öğrenci işleri asistanınızım. Size nasıl yardımcı olabilirim ?',
     timestamp: new Date().toISOString()
   }
 ];
