@@ -6,19 +6,76 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Linking,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+
+// Define API URL based on platform
+const API_URL = Platform.select({
+  android: 'http://10.0.2.2:8000',    // Android Emulator
+  ios: 'http://10.200.0.7:8000',      // iOS - Using localhost
+  default: 'http://10.200.0.7:8000'   // Web/default
+});
+
+// Axios instance with timeout and error handling
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000, // 10 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  config => {
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data
+    });
+    return config;
+  },
+  error => {
+    console.error('API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  response => {
+    console.log('API Response:', {
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
+  error => {
+    console.error('API Response Error:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+      }
+    });
+    return Promise.reject(error);
+  }
+);
 
 // Define colors to match the application theme
 const colors = {
@@ -819,23 +876,20 @@ export default function ClassNotes() {
         return;
       }
 
-      const response = await axios.post(
-          'http://10.200.0.7:8000/generate_note',
-        {
-          topic: formData.description,
-          max_words: 500
+      console.log('Attempting to generate content with:', {
+        url: `${API_URL}/generate_note`,
+        description: formData.description
+      });
+
+      const response = await api.post('/generate_note', {
+        topic: formData.description,
+        max_words: 500
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      });
 
-      console.log('AI Response:', response.data); // Debug için response'u logla
-
-      // Backend'den gelen notu content'e yaz
       if (response.data) {
         setFormData(prev => ({
           ...prev,
@@ -845,10 +899,27 @@ export default function ClassNotes() {
         throw new Error('No content received from the server');
       }
     } catch (error: any) {
-      console.error('Error generating content:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        config: error.config
+      });
+      
+      let errorMessage = 'Failed to generate content.';
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please check your internet connection.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check if the server is running and accessible.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       Alert.alert(
         'Error',
-        error.response?.data?.message || 'Failed to generate content. Please try again.'
+        errorMessage
       );
     } finally {
       setIsGeneratingContent(false);
@@ -1030,19 +1101,19 @@ export default function ClassNotes() {
                               return;
                             }
 
-                            const response = await axios.post(
-                              'http://10.200.0.7:8000/generate_note',
-                              {
-                                topic: formData.description,
-                                max_words: 500
+                            console.log('Attempting to generate content with:', {
+                              url: `${API_URL}/generate_note`,
+                              description: formData.description
+                            });
+
+                            const response = await api.post('/generate_note', {
+                              topic: formData.description,
+                              max_words: 500
+                            }, {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
                               },
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${token}`,
-                                  'Content-Type': 'application/json',
-                                },
-                              }
-                            );
+                            });
 
                             if (response.data) {
                               setFormData(prev => ({
@@ -1053,10 +1124,27 @@ export default function ClassNotes() {
                               throw new Error('No content received from the server');
                             }
                           } catch (error: any) {
-                            console.error('Error generating content:', error);
+                            console.error('Error details:', {
+                              message: error.message,
+                              code: error.code,
+                              response: error.response?.data,
+                              config: error.config
+                            });
+                            
+                            let errorMessage = 'Failed to generate content.';
+                            if (error.code === 'ECONNABORTED') {
+                              errorMessage = 'Request timed out. Please check your internet connection.';
+                            } else if (error.code === 'ERR_NETWORK') {
+                              errorMessage = 'Network error. Please check if the server is running and accessible.';
+                            } else if (error.response?.data?.message) {
+                              errorMessage = error.response.data.message;
+                            } else if (error.message) {
+                              errorMessage = error.message;
+                            }
+                            
                             Alert.alert(
                               'Error',
-                              error.response?.data?.message || 'Failed to generate content. Please try again.'
+                              errorMessage
                             );
                           } finally {
                             setIsGeneratingContent(false);
@@ -1184,19 +1272,19 @@ export default function ClassNotes() {
                               return;
                             }
 
-                            const response = await axios.post(
-                              'http://10.200.0.7:8000/generate_note',
-                              {
-                                topic: formData.description,
-                                max_words: 500
+                            console.log('Attempting to generate content with:', {
+                              url: `${API_URL}/generate_note`,
+                              description: formData.description
+                            });
+
+                            const response = await api.post('/generate_note', {
+                              topic: formData.description,
+                              max_words: 500
+                            }, {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
                               },
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${token}`,
-                                  'Content-Type': 'application/json',
-                                },
-                              }
-                            );
+                            });
 
                             if (response.data) {
                               setFormData(prev => ({
@@ -1207,10 +1295,27 @@ export default function ClassNotes() {
                               throw new Error('No content received from the server');
                             }
                           } catch (error: any) {
-                            console.error('Error generating content:', error);
+                            console.error('Error details:', {
+                              message: error.message,
+                              code: error.code,
+                              response: error.response?.data,
+                              config: error.config
+                            });
+                            
+                            let errorMessage = 'Failed to generate content.';
+                            if (error.code === 'ECONNABORTED') {
+                              errorMessage = 'Request timed out. Please check your internet connection.';
+                            } else if (error.code === 'ERR_NETWORK') {
+                              errorMessage = 'Network error. Please check if the server is running and accessible.';
+                            } else if (error.response?.data?.message) {
+                              errorMessage = error.response.data.message;
+                            } else if (error.message) {
+                              errorMessage = error.message;
+                            }
+                            
                             Alert.alert(
                               'Error',
-                              error.response?.data?.message || 'Failed to generate content. Please try again.'
+                              errorMessage
                             );
                           } finally {
                             setIsGeneratingContent(false);

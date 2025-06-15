@@ -50,7 +50,7 @@ const MessageList: React.FC<MessageListProps> = ({
           key={message.id || `msg-${index}`}
           message={message}
           onDelete={() => onDeleteMessage(message.id)}
-          canDelete={message.userId === currentUserId || isLeader}
+          canDelete={message.senderId === currentUserId || isLeader}
           currentUserId={currentUserId}
         />
       ))}

@@ -24,7 +24,7 @@ const Message: React.FC<MessageProps> = ({ message, onDelete, canDelete, current
     }
   };
 
-  const isOwnMessage = message.userId === currentUserId;
+  const isOwnMessage = message.senderId === currentUserId;
 
   return (
     <View style={[
