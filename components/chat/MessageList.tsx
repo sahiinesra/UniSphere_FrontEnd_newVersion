@@ -126,7 +126,9 @@ const MessageList: React.FC<MessageListProps> = ({
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      {messages.map(renderMessage)}
+      <View style={styles.messagesWrapper}>
+        {messages.map(renderMessage)}
+      </View>
     </ScrollView>
   );
 };
@@ -137,7 +139,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD700',
   },
   contentContainer: {
+    flexGrow: 1,
     padding: 10,
+  },
+  messagesWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   messageContainer: {
     flexDirection: 'row',

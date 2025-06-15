@@ -3,14 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import ChatHeader from '../../components/chat/ChatHeader';
 import ChatInput from '../../components/chat/ChatInput';
@@ -32,10 +32,39 @@ const CommunityChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
+  const [currentUser, setCurrentUser] = useState<{firstName: string; lastName: string} | null>(null);
   const [isLeader, setIsLeader] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [isSending, setIsSending] = useState(false);
+
+  // Fetch current user info
+  const fetchCurrentUser = async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const response = await axios.get(
+        `${API_URL}/api/v1/users/profile`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      const userData = response.data.data;
+      setCurrentUser({
+        firstName: userData.firstName,
+        lastName: userData.lastName
+      });
+      setCurrentUserId(userData.id);
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
 
   // Initialize WebSocket connection
   const initializeWebSocket = async () => {
@@ -64,13 +93,18 @@ const CommunityChat = () => {
           return prev;
         }
         
-        // Add new message at the beginning
-        return [message, ...prev];
+        // Add new message and sort by date (oldest to newest)
+        const newMessages = [...prev, message].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        
+        // Scroll to bottom for new messages
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+        return newMessages;
       });
-      // Scroll to bottom for new messages
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
     };
 
     ws.onerror = (error) => {
@@ -103,25 +137,10 @@ const CommunityChat = () => {
 
       const fetchedMessages = response.data?.data?.length ? response.data.data : [];
       
-      // Deduplicate messages by ID when setting initial messages
-      setMessages((prev) => {
-        if (!prev || prev.length === 0) {
-          return fetchedMessages.sort((a, b) => 
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        }
-        
-        // Merge and deduplicate messages
-        const allMessages = [...prev, ...fetchedMessages];
-        const uniqueMessages = allMessages.filter((message, index, array) => 
-          array.findIndex(m => m.id === message.id) === index
-        );
-        
-        // Sort by creation date to maintain chronological order (oldest to newest)
-        return uniqueMessages.sort((a, b) => 
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      });
+      // Sort messages by date (oldest to newest)
+      setMessages(fetchedMessages.sort((a, b) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      ));
 
       // Scroll to bottom after messages are loaded
       setTimeout(() => {
@@ -140,11 +159,37 @@ const CommunityChat = () => {
     if (!content.trim()) return;
 
     setIsSending(true);
+    let tempId: number;
     try {
       const token = await getAccessToken();
       if (!token) return;
 
-      await axios.post(
+      // Create a temporary message object with current timestamp as ID
+      tempId = Date.now();
+      const tempMessage: ChatMessage = {
+        id: -tempId, // Using negative number for temporary messages
+        communityId: Number(communityId),
+        content,
+        messageType: 'TEXT',
+        senderId: currentUserId!,
+        senderName: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Me',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Immediately add the message to UI and sort by date
+      setMessages(prev => {
+        const newMessages = [...prev, tempMessage].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return newMessages;
+      });
+
+      // Scroll to bottom immediately
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+
+      // Send the message to server
+      const response = await axios.post(
         `${API_URL}/api/v1/communities/${communityId}/chat/text`,
         { content, messageType: 'TEXT' },
         {
@@ -152,10 +197,24 @@ const CommunityChat = () => {
         }
       );
 
-      console.log('Message sent');
+      // If server responds with the real message, update it
+      if (response.data?.data) {
+        const serverMessage = response.data.data;
+        setMessages(prev => {
+          const filteredMessages = prev.filter(msg => msg.id !== -tempId); // Match the negative ID
+          return [...filteredMessages, serverMessage].sort((a, b) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+      }
+
+      console.log('Message sent successfully');
     } catch (error) {
       console.error('Failed to send message!', error);
       Alert.alert('Error!', 'Failed to send message');
+      
+      // Remove the temporary message if sending failed
+      setMessages(prev => prev.filter(msg => msg.id !== -tempId));
     } finally {
       setIsSending(false);
     }
