@@ -164,7 +164,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://10.200.0.7:8080/api/v1/auth/register', {
+      const response = await axios.post('http://10.200.0.156:8080/api/v1/auth/register', {
         departmentId: 1,
         email,
         firstName,

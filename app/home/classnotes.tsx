@@ -23,8 +23,8 @@ import {
 // Define API URL based on platform
 const API_URL = Platform.select({
   android: 'http://10.0.2.2:8000',    // Android Emulator
-  ios: 'http://10.200.0.7:8000',      // iOS - Using localhost
-  default: 'http://10.200.0.7:8000'   // Web/default
+  ios: 'http://10.200.0.156:8000',      // iOS - Using localhost
+  default: 'http://10.200.0.156:8000'   // Web/default
 });
 
 // Axios instance with timeout and error handling
@@ -584,7 +584,7 @@ export default function ClassNotes() {
       }
 
       const response = await axios.get(
-        'http://10.200.0.7:8080/api/v1/class-notes',
+        'http://10.200.0.156:8080/api/v1/class-notes',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -685,7 +685,7 @@ export default function ClassNotes() {
       });
 
       const response = await axios.post(
-        'http://10.200.0.7:8080/api/v1/class-notes',
+        'http://10.200.0.156:8080/api/v1/class-notes',
         formDataObj,
         {
           headers: {
@@ -727,7 +727,7 @@ export default function ClassNotes() {
       }
 
       await axios.put(
-        `http://10.200.0.7:8080/api/v1/class-notes/${formData.noteId}`,
+        `http://10.200.0.156:8080/api/v1/class-notes/${formData.noteId}`,
         {
           content: formData.content,
           courseCode: formData.courseCode,
@@ -766,7 +766,7 @@ export default function ClassNotes() {
       }
 
       await axios.delete(
-        `http://10.200.0.7:8080/api/v1/class-notes/${noteId}`,
+        `http://10.200.0.156:8080/api/v1/class-notes/${noteId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -827,7 +827,7 @@ export default function ClassNotes() {
 
       // First get the file details from the API
       const response = await axios.get(
-        `http://10.200.0.7:8080/api/v1/files/${fileId}`,
+        `http://10.200.0.156:8080/api/v1/files/${fileId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -839,7 +839,7 @@ export default function ClassNotes() {
         // Replace localhost with the production URL
         const fileUrl = response.data.data.fileUrl.replace(
           'http://localhost:8080',
-          'http://10.200.0.7:8080'
+          'http://10.200.0.156:8080'
         );
 
         const supported = await Linking.canOpenURL(fileUrl);

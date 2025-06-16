@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // API configuration
-const API_URL = 'http://10.200.0.7:8080';
+const API_URL = 'http://10.200.0.156:8080';
 
 interface CommunityDetails {
   id: string;
@@ -130,7 +130,7 @@ const CommunityDetails = () => {
 
       // Replace localhost URL with the correct server URL
       const photoUrl = data.profilePhotoUrl ? 
-        data.profilePhotoUrl.replace('http://localhost:8080', 'http://10.200.0.7:8080') : 
+        data.profilePhotoUrl.replace('http://localhost:8080', 'http://10.200.0.156:8080') : 
         null;
 
       setCommunityData({

@@ -20,12 +20,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // Define API URL based on platform
 const API_URL = Platform.select({
   android: 'http://10.0.2.2:8087',  // Android Emulator
-  ios: 'http://10.200.0.7:8087',     // iOS Simulator
-  default: 'http://10.200.0.7:8087'  // Web/default
+  ios: 'http://10.200.0.156:8087',     // iOS Simulator
+  default: 'http://10.200.0.156:8087'  // Web/default
 });
 
 // API endpoint
-const ASK_ENDPOINT = `http://10.200.0.7:8087/ask`;
+const ASK_ENDPOINT = `http://10.200.0.156:8087/ask`;
 
 // Define types for our data
 interface ChatMessage {
@@ -40,7 +40,7 @@ const initialChatMessages: ChatMessage[] = [
   {
     id: '1',
     sender: 'ai',
-    message: 'Merhaba ! Ben sanal öğrenci işleri asistanınızım. Size nasıl yardımcı olabilirim ?',
+    message: '🤖 Merhaba! Ben Ankara Bilim Üniversitesi\'nin dijital yönetmelik asistanıyım. Karmaşık dokümanlarda kaybolmak yerine, sorunu bana sor, cevabı anında al! 🚀',
     timestamp: new Date().toISOString()
   }
 ];

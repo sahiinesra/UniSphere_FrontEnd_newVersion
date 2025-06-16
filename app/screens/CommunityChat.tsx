@@ -3,14 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import ChatHeader from '../../components/chat/ChatHeader';
 import ChatInput from '../../components/chat/ChatInput';
@@ -18,7 +18,7 @@ import MessageList from '../../components/chat/MessageList';
 import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 
 // Define API URL based on platform
-const API_URL = 'http://10.200.0.7:8080';
+const API_URL = 'http://10.200.0.156:8080';
 
 // Get access token
 const getAccessToken = async () => {
@@ -73,7 +73,7 @@ const CommunityChat = () => {
 
     // <- GÜNCEL
     const ws = new WebSocket(
-      `ws://10.200.0.7:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
+      `ws://10.200.0.156:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
     );
 
     console.log("WebSocket Connecting with token.");

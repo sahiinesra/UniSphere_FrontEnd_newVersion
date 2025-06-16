@@ -6,17 +6,17 @@ import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Linking,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // Define types for our data
@@ -84,7 +84,7 @@ export default function PastExams() {
       if (!token) return;
 
       const response = await axios.get(
-        'http://10.200.0.7:8080/api/v1/users/profile',
+        'http://10.200.0.156:8080/api/v1/users/profile',
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -153,7 +153,7 @@ export default function PastExams() {
       }
 
       const response = await axios.get(
-        `http://10.200.0.7:8080/api/v1/past-exams`,
+        `http://10.200.0.156:8080/api/v1/past-exams`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -204,7 +204,7 @@ export default function PastExams() {
       }
 
       const response = await axios.post(
-        'http://10.200.0.7:8080/api/v1/past-exams',
+        'http://10.200.0.156:8080/api/v1/past-exams',
         formDataObj,
         {
           headers: {
@@ -247,7 +247,7 @@ export default function PastExams() {
       }
   
       const response = await axios.put(
-        `http://10.200.0.7:8080/api/v1/past-exams/${currentExam.id}`,
+        `http://10.200.0.156:8080/api/v1/past-exams/${currentExam.id}`,
         {
           year: parseInt(formData.year, 10),
           term: formData.term,
@@ -295,7 +295,7 @@ export default function PastExams() {
       }
 
       await axios.delete(
-        `http://10.200.0.7:8080/api/v1/past-exams/${examId}`,
+        `http://10.200.0.156:8080/api/v1/past-exams/${examId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -387,7 +387,7 @@ export default function PastExams() {
 
       // First get the file details from the API
       const response = await axios.get(
-        `http://10.200.0.7:8080/api/v1/files/${fileId}`,
+        `http://10.200.0.156:8080/api/v1/files/${fileId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -398,8 +398,8 @@ export default function PastExams() {
       if (response.data?.data?.fileUrl) {
         // Replace localhost with the production URL
         const fileUrl = response.data.data.fileUrl.replace(
-          'http://localhost:8080',
-          'http://10.200.0.7:8080'
+          'http://10.200.0.156:8080',
+          'http://10.200.0.156:8080'
         );
 
         const supported = await Linking.canOpenURL(fileUrl);

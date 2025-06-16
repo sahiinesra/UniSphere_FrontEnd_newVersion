@@ -53,7 +53,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://10.200.0.7:8080/api/v1/auth/forgot-password', {
+      const response = await axios.post('http://10.200.0.156:8080/api/v1/auth/forgot-password', {
         email: email.trim()
       });
 

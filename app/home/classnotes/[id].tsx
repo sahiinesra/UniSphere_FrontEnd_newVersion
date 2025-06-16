@@ -4,12 +4,12 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 interface Note {
@@ -45,7 +45,7 @@ export default function ClassNoteDetail() {
       }
 
       const response = await axios.get(
-        `http://10.200.0.7:8080/api/v1/class-notes/${id}`,
+        `http://10.200.0.156:8080/api/v1/class-notes/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
