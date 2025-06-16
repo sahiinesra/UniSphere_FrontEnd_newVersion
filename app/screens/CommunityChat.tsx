@@ -72,73 +72,115 @@ const CommunityChat = () => {
 
   // Initialize WebSocket connection
   const initializeWebSocket = async () => {
-    const token = await getAccessToken();
-    if (!token) return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        console.error('No token available for WebSocket connection');
+        return;
+      }
 
-    const ws = new WebSocket(
-      `ws://10.200.0.156:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
-    );
+      // Close existing connection if any
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
 
-    console.log("WebSocket Connecting with token.");
+      const ws = new WebSocket(
+        `ws://10.200.0.156:8080/api/v1/communities/${communityId}/chat/ws?token=${encodeURIComponent(token)}`
+      );
 
-    ws.onopen = () => {
-      console.log('WebSocket Connected');
-    };
+      console.log("WebSocket Connecting with token...");
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setMessages((prev) => {
-        if (!prev) return [message];
-        
-        // Check if message already exists or if there's a matching temporary message
-        const messageExists = prev.some(existingMsg => 
-          existingMsg.id === message.id || 
-          (existingMsg.id < 0 && 
-           existingMsg.messageType === message.messageType &&
-           existingMsg.content === message.content &&
-           (existingMsg.fileUrl?.includes(message.fileUrl || '') || 
-            message.fileUrl?.includes(existingMsg.fileUrl || '')))
-        );
+      ws.onopen = () => {
+        console.log('WebSocket Connected Successfully');
+      };
 
-        if (messageExists) {
-          // Replace temporary message with real one
-          return prev.map(msg => {
-            if (msg.id < 0 && 
-                msg.messageType === message.messageType &&
-                msg.content === message.content &&
-                (msg.fileUrl?.includes(message.fileUrl || '') || 
-                 message.fileUrl?.includes(msg.fileUrl || ''))) {
-              return message;
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('Received WebSocket message:', message);
+          
+          setMessages((prev) => {
+            if (!prev) return [message];
+            
+            // Enhanced duplicate detection for all message types
+            const messageExists = prev.some(existingMsg => {
+              // Check by ID
+              if (existingMsg.id === message.id) return true;
+              
+              // Check temporary messages
+              if (existingMsg.id < 0) {
+                // For file messages, check file properties
+                if (message.messageType === 'FILE' && existingMsg.messageType === 'FILE') {
+                  return existingMsg.fileName === message.fileName && 
+                         existingMsg.fileType === message.fileType;
+                }
+                // For text messages, check content
+                return existingMsg.content === message.content;
+              }
+              
+              return false;
+            });
+            
+            if (messageExists) {
+              return prev;
             }
-            return msg;
+            
+            // For file messages, don't add them here since we handle them in the upload response
+            if (message.messageType === 'FILE') {
+              return prev;
+            }
+            
+            // Add new message and sort by date (oldest to newest)
+            const newMessages = [...prev, message].sort((a, b) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            
+            // Scroll to bottom for new messages
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+
+            return newMessages;
           });
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error);
         }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        Alert.alert('Connection Error', 'Failed to connect to chat. Please try again.');
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket Disconnected:', event);
         
-        // Add new message and sort by date
-        const newMessages = [...prev, message].sort((a, b) => 
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        
-        // Scroll to bottom for new messages
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        // Only attempt to reconnect if the component is still mounted
+        if (wsRef.current) {
+          setTimeout(() => {
+            console.log('Attempting to reconnect WebSocket...');
+            initializeWebSocket();
+          }, 3000);
+        }
+      };
 
-        return newMessages;
-      });
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket Error!', error);
-    };
-
-    ws.onclose = (event) => {
-      console.log('WebSocket Disconnected!', event);
-      setTimeout(initializeWebSocket, 3000);
-    };
-
-    wsRef.current = ws;
+      wsRef.current = ws;
+    } catch (error) {
+      console.error('Error initializing WebSocket:', error);
+      Alert.alert('Connection Error', 'Failed to initialize chat connection. Please try again.');
+    }
   };
+
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        console.log('Cleaning up WebSocket connection');
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
 
   // Fetch chat messages
   const fetchMessages = async () => {
@@ -250,9 +292,7 @@ const CommunityChat = () => {
       const token = await getAccessToken();
       if (!token) return;
 
-      console.log('Preparing to send file:', file);
-
-      // Create a temporary message object with current timestamp as ID
+      // Create a temporary message object
       tempId = Date.now();
       const tempMessage: ChatMessage = {
         id: -tempId,
@@ -263,13 +303,24 @@ const CommunityChat = () => {
         senderName: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Me',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        fileUrl: file.uri,
+        fileType: file.type,
         fileName: file.name,
-        fileType: file.type
       };
 
-      // Immediately add the message to UI and sort by date
+      // Add temporary message to UI
       setMessages(prev => {
+        // Check if this file is already being uploaded
+        const isDuplicate = prev.some(msg => 
+          msg.messageType === 'FILE' && 
+          msg.fileName === file.name && 
+          msg.fileType === file.type
+        );
+
+        if (isDuplicate) {
+          console.log('Duplicate file upload prevented:', file.name);
+          return prev;
+        }
+
         const newMessages = [...prev, tempMessage].sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
@@ -279,54 +330,54 @@ const CommunityChat = () => {
       // Scroll to bottom immediately
       scrollViewRef.current?.scrollToEnd({ animated: true });
 
-      // Prepare FormData
+      // Prepare form data
       const formData = new FormData();
-      
-      // Add file to FormData with proper structure
-      const fileToUpload = {
-        uri: file.uri,
-        type: file.type || 'application/pdf',
+      formData.append('file', {
+        uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
+        type: file.type,
         name: file.name,
-        size: file.size,
-      };
-      
-      console.log('Uploading file:', fileToUpload);
-      formData.append('file', fileToUpload as any);
-      
+      } as any);
+
       if (content) {
         formData.append('content', content);
       }
 
-      // Send the file to server
+      // Send file to server
       const response = await axios.post(
         `${API_URL}/api/v1/communities/${communityId}/chat/file`,
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json',
           },
-          transformRequest: (data, headers) => {
-            return formData;
-          },
-          timeout: 60000
         }
       );
 
-      console.log('File upload response:', response.data);
+      // Update message with server response
+      if (response.data?.data) {
+        const serverMessage = response.data.data;
+        setMessages(prev => {
+          // Remove any duplicate messages and the temporary message
+          const filteredMessages = prev.filter(msg => 
+            msg.id !== -tempId && 
+            !(msg.messageType === 'FILE' && 
+              msg.fileName === serverMessage.fileName && 
+              msg.fileType === serverMessage.fileType)
+          );
+          
+          return [...filteredMessages, serverMessage].sort((a, b) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+      }
 
-      // Don't update messages here since WebSocket will handle it
       console.log('File sent successfully');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to send file!', error);
-      console.error('Error details:', error.response?.data);
-      Alert.alert(
-        'Hata',
-        error.response?.data?.message || 'Dosya gönderilirken bir hata oluştu. Lütfen tekrar deneyin.'
-      );
+      Alert.alert('Error', 'Failed to send file');
       
-      // Remove the temporary message if sending failed
+      // Remove temporary message if sending failed
       setMessages(prev => prev.filter(msg => msg.id !== -tempId));
     } finally {
       setIsSending(false);
@@ -363,12 +414,6 @@ const CommunityChat = () => {
       await Promise.all([fetchMessages(), initializeWebSocket()]);
     };
     initialize();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
   }, [communityId]);
 
   // Handle back press

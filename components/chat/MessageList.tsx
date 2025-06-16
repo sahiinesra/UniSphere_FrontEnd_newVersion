@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { MessageListProps } from '../../types/chat';
 
@@ -19,9 +20,13 @@ const MessageList: React.FC<MessageListProps> = ({
   currentUserId,
   isLeader
 }) => {
-  const handleFilePress = async (fileUrl: string) => {
+  const handleFilePress = async (fileUrl: string, fileType?: string) => {
     try {
-      await Linking.openURL(fileUrl);
+      if (Platform.OS === 'web') {
+        window.open(fileUrl, '_blank');
+      } else {
+        await Linking.openURL(fileUrl);
+      }
     } catch (error) {
       console.error('Error opening file:', error);
       Alert.alert('Error', 'Could not open file');
@@ -46,13 +51,63 @@ const MessageList: React.FC<MessageListProps> = ({
     );
   };
 
+  const renderFilePreview = (message: typeof messages[0]) => {
+    if (!message.fileUrl) return null;
+
+    const isImage = message.fileType?.startsWith('image/');
+    const isPDF = message.fileType === 'application/pdf';
+
+    return (
+      <TouchableOpacity
+        style={styles.fileContainer}
+        onPress={() => handleFilePress(message.fileUrl!, message.fileType)}
+      >
+        {isImage ? (
+          <View style={styles.imageWrapper}>
+            <Image
+              source={{ uri: message.fileUrl }}
+              style={styles.imageFile}
+              resizeMode="cover"
+            />
+          </View>
+        ) : isPDF ? (
+          <View style={styles.fileInfo}>
+            <Ionicons name="document-text" size={24} color="#000000" />
+            <Text style={styles.fileName}>{message.fileName || 'PDF Document'}</Text>
+          </View>
+        ) : (
+          <View style={styles.fileInfo}>
+            <Ionicons name="document" size={24} color="#000000" />
+            <Text style={styles.fileName}>{message.fileName || 'File'}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  // Deduplicate messages based on content and file properties
+  const uniqueMessages = useMemo(() => {
+    const seen = new Set();
+    return messages.filter(message => {
+      const key = message.id > 0 
+        ? message.id.toString() 
+        : `${message.messageType}-${message.fileName}-${message.content}`;
+      
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }, [messages]);
+
   const renderMessage = (message: typeof messages[0], index: number) => {
     const isCurrentUser = message.senderId === currentUserId;
     const canDelete = isCurrentUser || isLeader;
 
     return (
       <View
-        key={message.id ?? index}
+        key={`${message.id}-${message.fileName || ''}-${index}`}
         style={[
           styles.messageContainer,
           isCurrentUser ? styles.userMessageContainer : styles.otherMessageContainer
@@ -75,47 +130,21 @@ const MessageList: React.FC<MessageListProps> = ({
               isCurrentUser ? styles.userBubble : styles.otherBubble
             ]}
           >
-            {message.messageType === 'FILE' && message.fileUrl && (
-              <TouchableOpacity
-                style={styles.fileContainer}
-                onPress={() => handleFilePress(message.fileUrl!)}
-              >
-                {message.fileType?.startsWith('image/') ? (
-                  <Image
-                    source={{ uri: message.fileUrl }}
-                    style={styles.imageFile}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.fileInfo}>
-                    <Ionicons name="document" size={24} color="#000000" />
-                    <Text style={styles.fileName}>{message.fileName}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
-
+            {renderFilePreview(message)}
             {message.content && (
               <Text style={styles.messageText}>{message.content}</Text>
             )}
-
-            <Text style={styles.timestamp}>
-              {new Date(message.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </Text>
           </View>
-        </View>
 
-        {canDelete && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeletePress(message.id)}
-          >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          </TouchableOpacity>
-        )}
+          {canDelete && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeletePress(message.id)}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF0000" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -127,7 +156,7 @@ const MessageList: React.FC<MessageListProps> = ({
       contentContainerStyle={styles.contentContainer}
     >
       <View style={styles.messagesWrapper}>
-        {messages.map(renderMessage)}
+        {uniqueMessages.map((message, index) => renderMessage(message, index))}
       </View>
     </ScrollView>
   );
@@ -204,12 +233,15 @@ const styles = StyleSheet.create({
   fileContainer: {
     marginBottom: 8,
   },
+  imageWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
   imageFile: {
     width: 200,
     height: 200,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#000000',
   },
   fileInfo: {
     flexDirection: 'row',
@@ -224,10 +256,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#000000',
+    flex: 1,
   },
   deleteButton: {
     padding: 8,
     marginLeft: 8,
+    alignSelf: 'flex-end',
   },
 });
 
