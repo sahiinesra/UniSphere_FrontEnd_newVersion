@@ -2,6 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -628,6 +629,33 @@ export default function ClassNotes() {
   // Add file picker function
   const handleFilePick = async () => {
     try {
+      Alert.alert(
+        'Select File Type',
+        'Choose the type of file you want to upload',
+        [
+          {
+            text: 'PDF Document',
+            onPress: handlePDFPick
+          },
+          {
+            text: 'Image',
+            onPress: handleImagePick
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error with file selection:', error);
+      Alert.alert('Error', 'Failed to handle file selection');
+    }
+  };
+
+  // Handle PDF file selection
+  const handlePDFPick = async () => {
+    try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
@@ -641,14 +669,38 @@ export default function ClassNotes() {
             name: file.name,
             mimeType: file.mimeType,
           });
-          Alert.alert('Success', `Selected file: ${file.name}`);
+          Alert.alert('Success', `Selected PDF: ${file.name}`);
         } else {
           Alert.alert('Error', 'Please select a PDF file');
         }
       }
     } catch (error) {
-      console.error('Error picking file:', error);
-      Alert.alert('Error', 'Failed to pick file');
+      console.error('Error picking PDF:', error);
+      Alert.alert('Error', 'Failed to pick PDF file');
+    }
+  };
+
+  // Handle image file selection
+  const handleImagePick = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const file = result.assets[0];
+        setSelectedFile({
+          uri: file.uri,
+          name: file.fileName || `image_${Date.now()}.jpg`,
+          mimeType: 'image/jpeg',
+        });
+        Alert.alert('Success', 'Image selected successfully');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -1181,7 +1233,7 @@ export default function ClassNotes() {
                   >
                     <Ionicons name="document-attach" size={20} color="#fff" />
                     <Text style={styles.uploadFileButtonText}>
-                      {selectedFile ? `Selected: ${selectedFile.name}` : 'Add PDF File'}
+                      {selectedFile ? `Selected: ${selectedFile.name}` : 'Add PDF or Image'}
                     </Text>
                   </TouchableOpacity>
 
