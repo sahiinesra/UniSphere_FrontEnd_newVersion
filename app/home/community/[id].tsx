@@ -42,7 +42,7 @@ const CommunityDetails = () => {
       if (!token) return null;
 
       const response = await axios.get(
-        'http://10.200.0.7:8080/api/v1/users/profile',
+        'http://10.200.0.156:8080/api/v1/users/profile',
         {
           headers: {
             'Authorization': `Bearer ${token}`,

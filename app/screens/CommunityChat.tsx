@@ -3,14 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import ChatHeader from '../../components/chat/ChatHeader';
 import ChatInput from '../../components/chat/ChatInput';
@@ -19,6 +19,9 @@ import { ChatMessage, ChatMessageResponse } from '../../types/chat';
 
 // Define API URL based on platform
 const API_URL = 'http://10.200.0.156:8080';
+
+// Configure axios defaults
+axios.defaults.timeout = 30000; // 30 seconds timeout
 
 // Get access token
 const getAccessToken = async () => {
@@ -47,7 +50,8 @@ const CommunityChat = () => {
       const response = await axios.get(
         `${API_URL}/api/v1/users/profile`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000 // 30 seconds timeout
         }
       );
 
@@ -71,7 +75,6 @@ const CommunityChat = () => {
     const token = await getAccessToken();
     if (!token) return;
 
-    // <- GÜNCEL
     const ws = new WebSocket(
       `ws://10.200.0.156:8080/api/v1/communities/${communityId}/chat/ws?token=${token}`
     );
@@ -87,13 +90,31 @@ const CommunityChat = () => {
       setMessages((prev) => {
         if (!prev) return [message];
         
-        // Check if message already exists to prevent duplicates
-        const messageExists = prev.some(existingMsg => existingMsg.id === message.id);
+        // Check if message already exists or if there's a matching temporary message
+        const messageExists = prev.some(existingMsg => 
+          existingMsg.id === message.id || 
+          (existingMsg.id < 0 && 
+           existingMsg.messageType === message.messageType &&
+           existingMsg.content === message.content &&
+           (existingMsg.fileUrl?.includes(message.fileUrl || '') || 
+            message.fileUrl?.includes(existingMsg.fileUrl || '')))
+        );
+
         if (messageExists) {
-          return prev;
+          // Replace temporary message with real one
+          return prev.map(msg => {
+            if (msg.id < 0 && 
+                msg.messageType === message.messageType &&
+                msg.content === message.content &&
+                (msg.fileUrl?.includes(message.fileUrl || '') || 
+                 message.fileUrl?.includes(msg.fileUrl || ''))) {
+              return message;
+            }
+            return msg;
+          });
         }
         
-        // Add new message and sort by date (oldest to newest)
+        // Add new message and sort by date
         const newMessages = [...prev, message].sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
@@ -132,6 +153,7 @@ const CommunityChat = () => {
             Authorization: `Bearer ${token}`
           },
           params: { limit: 50 },
+          timeout: 30000 // 30 seconds timeout
         }
       );
 
@@ -222,31 +244,92 @@ const CommunityChat = () => {
 
   // Send file message
   const handleSendFile = async (file: any, content?: string) => {
+    setIsSending(true);
+    let tempId: number;
     try {
       const token = await getAccessToken();
       if (!token) return;
 
+      console.log('Preparing to send file:', file);
+
+      // Create a temporary message object with current timestamp as ID
+      tempId = Date.now();
+      const tempMessage: ChatMessage = {
+        id: -tempId,
+        communityId: Number(communityId),
+        content: content || '',
+        messageType: 'FILE',
+        senderId: currentUserId!,
+        senderName: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Me',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fileUrl: file.uri,
+        fileName: file.name,
+        fileType: file.type
+      };
+
+      // Immediately add the message to UI and sort by date
+      setMessages(prev => {
+        const newMessages = [...prev, tempMessage].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return newMessages;
+      });
+
+      // Scroll to bottom immediately
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+
+      // Prepare FormData
       const formData = new FormData();
-      formData.append('file', file);
+      
+      // Add file to FormData with proper structure
+      const fileToUpload = {
+        uri: file.uri,
+        type: file.type || 'application/pdf',
+        name: file.name,
+        size: file.size,
+      };
+      
+      console.log('Uploading file:', fileToUpload);
+      formData.append('file', fileToUpload as any);
+      
       if (content) {
         formData.append('content', content);
       }
 
-      await axios.post(
+      // Send the file to server
+      const response = await axios.post(
         `${API_URL}/api/v1/communities/${communityId}/chat/file`,
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
           },
+          transformRequest: (data, headers) => {
+            return formData;
+          },
+          timeout: 60000
         }
       );
 
-      console.log('File sent');
-    } catch (error) {
+      console.log('File upload response:', response.data);
+
+      // Don't update messages here since WebSocket will handle it
+      console.log('File sent successfully');
+    } catch (error: any) {
       console.error('Failed to send file!', error);
-      Alert.alert('Error!', 'Failed to send file');
+      console.error('Error details:', error.response?.data);
+      Alert.alert(
+        'Hata',
+        error.response?.data?.message || 'Dosya gönderilirken bir hata oluştu. Lütfen tekrar deneyin.'
+      );
+      
+      // Remove the temporary message if sending failed
+      setMessages(prev => prev.filter(msg => msg.id !== -tempId));
+    } finally {
+      setIsSending(false);
     }
   };
 
