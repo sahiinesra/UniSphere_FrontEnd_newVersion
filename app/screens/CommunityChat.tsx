@@ -99,6 +99,11 @@ const CommunityChat = () => {
           const message = JSON.parse(event.data);
           console.log('Received WebSocket message:', message);
           
+          // Fix file URL if it's a file message
+          if (message.messageType === 'FILE' && message.fileUrl) {
+            message.fileUrl = message.fileUrl.replace('localhost', '10.200.0.156');
+          }
+          
           setMessages((prev) => {
             if (!prev) return [message];
             
@@ -195,14 +200,25 @@ const CommunityChat = () => {
             Authorization: `Bearer ${token}`
           },
           params: { limit: 50 },
-          timeout: 30000 // 30 seconds timeout
+          timeout: 30000
         }
       );
 
       const fetchedMessages = response.data?.data?.length ? response.data.data : [];
       
+      // Fix file URLs in fetched messages
+      const messagesWithFixedUrls = fetchedMessages.map(message => {
+        if (message.messageType === 'FILE' && message.fileUrl) {
+          return {
+            ...message,
+            fileUrl: message.fileUrl.replace('localhost', '10.200.0.156')
+          };
+        }
+        return message;
+      });
+      
       // Sort messages by date (oldest to newest)
-      setMessages(fetchedMessages.sort((a, b) => 
+      setMessages(messagesWithFixedUrls.sort((a, b) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       ));
 
@@ -357,6 +373,11 @@ const CommunityChat = () => {
       // Update message with server response
       if (response.data?.data) {
         const serverMessage = response.data.data;
+        // Fix file URL in server response
+        if (serverMessage.fileUrl) {
+          serverMessage.fileUrl = serverMessage.fileUrl.replace('localhost', '10.200.0.156');
+        }
+        
         setMessages(prev => {
           // Remove any duplicate messages and the temporary message
           const filteredMessages = prev.filter(msg => 
