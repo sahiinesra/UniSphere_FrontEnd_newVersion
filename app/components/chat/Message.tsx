@@ -17,7 +17,31 @@ const Message: React.FC<MessageProps> = ({ message, onDelete, canDelete, current
       if (isNaN(date.getTime())) {
         return '';
       }
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Format time as HH:mm
+      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      // Get today's date at midnight for comparison
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // If the message is from today, just show time
+      if (date >= today) {
+        return time;
+      }
+      
+      // If it's from yesterday, show "Yesterday, HH:mm"
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (date >= yesterday) {
+        return `Yesterday, ${time}`;
+      }
+      
+      // For older messages, show date and time
+      return date.toLocaleDateString([], { 
+        year: '2-digit',
+        month: 'numeric',
+        day: 'numeric'
+      }) + ', ' + time;
+      
     } catch (error) {
       console.error('Error formatting date:', error);
       return '';
@@ -40,7 +64,10 @@ const Message: React.FC<MessageProps> = ({ message, onDelete, canDelete, current
         )}
         <Text style={styles.messageText}>{message.content}</Text>
         <View style={styles.bottomRow}>
-          <Text style={styles.time}>{formatDate(message.createdAt)}</Text>
+          <Text style={[
+            styles.time,
+            isOwnMessage ? styles.ownTime : styles.otherTime
+          ]}>{formatDate(message.createdAt)}</Text>
           {canDelete && (
             <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
               <MaterialIcons name="delete-outline" size={16} color="#888888" />
@@ -97,18 +124,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#000000',
     marginRight: 4,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
   },
   time: {
-    fontSize: 11,
-    color: '#8C8C8C',
+    fontSize: 12,
     marginRight: 4,
+    fontWeight: '400',
+  },
+  ownTime: {
+    color: '#4A6741',
+  },
+  otherTime: {
+    color: '#666666',
   },
   deleteButton: {
     padding: 2,

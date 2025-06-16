@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -52,6 +53,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -162,14 +164,26 @@ const handleLogin = async () => {
             
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                placeholderTextColor="#999"
-                secureTextEntry
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#999"
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={24} 
+                    color="#666666"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             
             <TouchableOpacity 
@@ -327,6 +341,25 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 14,
     marginTop: 5,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBackground,
+    borderRadius: 0,
+    borderWidth: 3,
+    borderColor: colors.border,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeButton: {
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
