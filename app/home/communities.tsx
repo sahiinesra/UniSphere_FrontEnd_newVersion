@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,6 +33,8 @@ export default function Communities() {
   const { newCommunity } = useLocalSearchParams();
   const [showMyCommunities, setShowMyCommunities] = useState(false);
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [userRole, setUserRole] = useState<string>('');
@@ -79,6 +82,24 @@ export default function Communities() {
     }
   }, [newCommunity]);
 
+  // Add search functionality
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      setFilteredCommunities(communities);
+      return;
+    }
+    
+    const searchTerms = text.toLowerCase().split(' ');
+    const filtered = communities.filter(community => {
+      const searchableText = `${community.name} ${community.abbreviation}`.toLowerCase();
+      return searchTerms.every(term => searchableText.includes(term));
+    });
+    
+    setFilteredCommunities(filtered);
+  };
+
+  // Update loadCommunities to set filtered communities
   const loadCommunities = async () => {
     try {
       console.log('Loading communities, showMyCommunities:', showMyCommunities);
@@ -99,6 +120,7 @@ export default function Communities() {
         }));
         console.log('Processed my communities:', myCommunities);
         setCommunities(myCommunities);
+        setFilteredCommunities(myCommunities);
       } else {
         console.log('Fetching all communities...');
         response = await communityService.getAllCommunities();
@@ -109,6 +131,7 @@ export default function Communities() {
         }));
         console.log('Processed all communities:', allCommunities);
         setCommunities(allCommunities);
+        setFilteredCommunities(allCommunities);
       }
     } catch (error) {
       console.error('Failed to fetch communities:', error);
@@ -187,6 +210,16 @@ export default function Communities() {
       }} />
       
       <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search communities..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          <Ionicons name="search" size={24} color="black" style={styles.searchIcon} />
+        </View>
+
         <View style={styles.header}>
           <TouchableOpacity 
             style={[styles.tabButton, !showMyCommunities && styles.activeTab]}
@@ -211,7 +244,7 @@ export default function Communities() {
         </TouchableOpacity>
 
         <ScrollView style={styles.scrollView}>
-          {communities.map((community) => (
+          {filteredCommunities.map((community) => (
             <View key={community.id} style={styles.card}>
               <TouchableOpacity 
                 onPress={() => handleCommunityPress(community.id)}
@@ -309,7 +342,26 @@ export default function Communities() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     backgroundColor: colors.background,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    borderRadius: 5,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  searchIcon: {
+    marginLeft: 10,
   },
   header: {
     flexDirection: 'row',
