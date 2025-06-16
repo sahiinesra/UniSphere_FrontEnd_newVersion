@@ -365,19 +365,17 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    padding: 10,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.border,
+    marginBottom: 20,
+    width: '100%',
   },
   tabButton: {
     flex: 1,
-    padding: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    paddingVertical: 10,
     alignItems: 'center',
-    marginHorizontal: 5,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border,
+    justifyContent: 'center',
   },
   activeTab: {
     backgroundColor: colors.background,
@@ -385,7 +383,7 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#000000',
   },
   createButton: {
     margin: 10,
