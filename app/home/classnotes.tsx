@@ -566,8 +566,7 @@ export default function ClassNotes() {
       const filtered = classNotes.filter(note =>
         (note.title?.toLowerCase() || '').includes(searchText) ||
         (note.courseCode?.toLowerCase() || '').includes(searchText) ||
-        (note.description?.toLowerCase() || '').includes(searchText) ||
-        (note.departmentId?.toString() || '').toLowerCase().includes(searchText)
+        (note.description?.toLowerCase() || '').includes(searchText)
       );
       setFilteredNotes(filtered);
     } else {
@@ -1051,7 +1050,7 @@ export default function ClassNotes() {
                   <View>
                     <Text style={styles.noteTitle}>{note.title}</Text>
                     <Text style={styles.noteMeta}>
-                      {note.courseCode} | Dept ID: {note.departmentId}
+                      {note.courseCode}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1078,13 +1077,10 @@ export default function ClassNotes() {
                         <Text style={[styles.fileName, { color: '#2196F3', textDecorationLine: 'underline' }]}>
                           {file.name}
                         </Text>
-                        <Text style={styles.fileId}>ID: {file.id}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
-
-                <Text style={styles.noteId}>Note ID: {note.id}</Text>
               </TouchableOpacity>
             ))}
           </View>
